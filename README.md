@@ -57,7 +57,8 @@ dashboard's SQL editor and run it. Do this only once; the CLI will not know it h
 
 ```bash
 cp apps/api/.env.example apps/api/.env
-# fill in SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL from Project Settings → API / Database
+# fill in SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from Project Settings → API, and DATABASE_URL
+# from Connect → "Session pooler" (not the direct db.<ref> host; it is IPv6-only, see .env.example)
 pnpm --filter @teardown/api dev
 ```
 
