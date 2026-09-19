@@ -1,0 +1,25 @@
+{
+  "name": "teardown",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Teardown: narrate a competitor walkthrough, capture screenshots on demand, get a structured document.",
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.8",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0"
+  }
+}

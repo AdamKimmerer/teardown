@@ -1,0 +1,10 @@
+# Supabase CLI project config. Only what `supabase link` and `supabase db push` need;
+# the hosted project's settings (auth providers, storage limits) are managed in the dashboard.
+project_id = "teardown"
+
+[db]
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
