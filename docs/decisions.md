@@ -48,3 +48,9 @@ one line to revisit.
 14. **Presigns are always upsert.** Supabase signed upload URLs reject a second PUT to the same
     path with 409 unless the presign carried `x-upsert: true`; the API uses
     `createSignedUploadUrl(path, { upsert: true })` so client retries are idempotent.
+15. **One Google OAuth client of type "Web application" serves both surfaces** (deviation from
+    spine §18.5's "Chrome App type for the extension"). A "Chrome Extension" client only permits
+    `getAuthToken`; `launchWebAuthFlow` needs a Web client with
+    `https://<extension-id>.chromiumapp.org/` as an authorized redirect URI (Chrome team, on the
+    chromium-extensions list). The same client also carries Supabase's
+    `/auth/v1/callback` redirect for the web app, so there is one client id to keep in Supabase.
