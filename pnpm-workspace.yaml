@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - apps/*
+  - spikes
 
 # pnpm 12 blocks dependency install scripts unless listed. esbuild's script installs its
 # platform binary; it is used by tsx and vitest here and by the extension build later.

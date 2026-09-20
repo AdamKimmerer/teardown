@@ -90,13 +90,13 @@ Without a token: `401 {"error":{"code":"unauthenticated","message":"Missing bear
 
 ## Everyday commands
 
-| Command                            | What it does                                          |
-| ---------------------------------- | ----------------------------------------------------- |
-| `pnpm build`                       | Build every package (core first; the apps depend on it) |
-| `pnpm test`                        | Run every package's Vitest suite                       |
-| `pnpm typecheck`                   | `tsc --noEmit` in every package                        |
-| `pnpm lint` / `pnpm format`        | typescript-eslint recommended / Prettier defaults      |
-| `pnpm --filter @teardown/api dev`  | API with reload on save, reading `apps/api/.env`       |
+| Command                           | What it does                                            |
+| --------------------------------- | ------------------------------------------------------- |
+| `pnpm build`                      | Build every package (core first; the apps depend on it) |
+| `pnpm test`                       | Run every package's Vitest suite                        |
+| `pnpm typecheck`                  | `tsc --noEmit` in every package                         |
+| `pnpm lint` / `pnpm format`       | typescript-eslint recommended / Prettier defaults       |
+| `pnpm --filter @teardown/api dev` | API with reload on save, reading `apps/api/.env`        |
 
 After changing anything in `packages/core`, run `pnpm --filter @teardown/core build` so the apps
 see it (or leave `pnpm --filter @teardown/core build --watch` running).
@@ -105,13 +105,13 @@ see it (or leave `pnpm --filter @teardown/core build --watch` running).
 
 Each runtime dependency, and what it is for. Add one only when it replaces more than ~100 lines.
 
-| Package             | Used by | Why                                                                  |
-| ------------------- | ------- | -------------------------------------------------------------------- |
-| `zod`               | all     | Schemas that are also the only source of TypeScript types            |
-| `hono`              | api     | The HTTP router: routes, middleware, typed context                   |
-| `@hono/node-server` | api     | Runs a Hono app on Node's `http` server                              |
-| `jose`              | api     | Verifies Supabase JWTs against the project's JWKS                    |
-| `postgres`          | api     | Postgres client (`postgres.js`); queries are hand-written SQL        |
+| Package             | Used by | Why                                                           |
+| ------------------- | ------- | ------------------------------------------------------------- |
+| `zod`               | all     | Schemas that are also the only source of TypeScript types     |
+| `hono`              | api     | The HTTP router: routes, middleware, typed context            |
+| `@hono/node-server` | api     | Runs a Hono app on Node's `http` server                       |
+| `jose`              | api     | Verifies Supabase JWTs against the project's JWKS             |
+| `postgres`          | api     | Postgres client (`postgres.js`); queries are hand-written SQL |
 
 Dev: `typescript` 5.x (TypeScript 7 is not yet supported by `typescript-eslint`), `vitest`,
 `tsx` (runs TypeScript directly in development), `eslint` + `typescript-eslint`, `prettier`.

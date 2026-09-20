@@ -1,0 +1,18 @@
+{
+  "name": "Teardown spike B: capture → IndexedDB → signed upload",
+  "description": "captureVisibleTab as PNG, store the Blob in IndexedDB, PUT it to a Supabase signed upload URL.",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx1EqlHAxBSjoY2zHHGbIccsHral2F4m7Kxd0l4wr8veUTgEoKU0Uu4Bkbya5FYwRQJ2xBGjLWb2b3T7xECmdg/qNymUiE1HlccHwIxa+ErOgySvjTtwUcqvh8BsFSXWXDINcDD9HsJ74nYtJJajWfkIMozJ5SE9vClV9sFXQX9jtebAktRDXhXD5VLBMtpzcXRtboX3dTlPYyRdHBXKXnYyJp5OSes3F5JcMTk70a4zEvtbqCkjcgb8ZjF2K1q3grfDPnk6BYASmcNYUwF4cI4fnF7Ose1QF1bd4RbS5dq0ilUf7HjxckCMvF9xFyec4KqYYnDJyYCIByBCEzsr6nwIDAQAB",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "sidePanel",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "service-worker.js", "type": "module" },
+  "side_panel": { "default_path": "panel.html" },
+  "action": { "default_title": "Open spike B panel" }
+}

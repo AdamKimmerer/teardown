@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Spike A</title>
+    <style>
+      body {
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        margin: 0;
+        padding: 1rem;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 0.5rem;
+      }
+      button {
+        font: inherit;
+        display: block;
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.4rem 0;
+      }
+      select {
+        font: inherit;
+        width: 100%;
+        margin: 0.4rem 0;
+      }
+      .meter {
+        height: 14px;
+        background: #ddd;
+        margin: 0.5rem 0;
+      }
+      .meter > div {
+        height: 100%;
+        width: 0;
+        background: #2a7;
+        transition: width 80ms linear;
+      }
+      .verdict {
+        font-weight: bold;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        background: #eee;
+      }
+      .pass {
+        background: #cfc;
+      }
+      .fail {
+        background: #fcc;
+      }
+      pre {
+        background: #f3f3f3;
+        padding: 0.5rem;
+        white-space: pre-wrap;
+        font-size: 12px;
+        max-height: 40vh;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Spike A: offscreen mic</h1>
+    <p>Run the steps in order. Speak while recording.</p>
+    <div>Permission state: <span id="perm">?</span></div>
+    <button id="grant-panel">1. Request mic from this panel</button>
+    <button id="grant-tab">1b. Open full-tab permission page (fallback)</button>
+    <select id="device"></select>
+    <button id="start">2. Record 10 s in the offscreen document</button>
+    <button id="close">Close offscreen document</button>
+    <div class="meter"><div id="level"></div></div>
+    <div id="verdict" class="verdict">no result yet</div>
+    <pre id="log"></pre>
+    <script src="panel.js"></script>
+  </body>
+</html>
