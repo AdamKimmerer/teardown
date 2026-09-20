@@ -2,7 +2,8 @@
 
 One paragraph per spike (build plan §Phases, row 1). Spikes (a) and (d) failing would change
 §Architecture; the others inform Phase 2–3 details. Folders live in `spikes/` until Phase 3
-replaces them.
+replaces them. **All four passed on 2026-09-19; the architecture stands as planned**, with the
+adjustments recorded in `decisions.md` #12–18.
 
 ## (a) Offscreen-document microphone — PASS (2026-09-19)
 
@@ -51,7 +52,7 @@ Extension side, on a real Chrome profile (Retina display, dpr 2):
 - (The 6 MB check from the extension first failed on the spike's own test code —
   `crypto.getRandomValues` caps at 64 KB — fixed; the 6 MB result above stands from Node.)
 
-## (c) Closed-shadow-root overlay on hostile pages — Stripe docs verified 2026-09-19; Linear and Notion pending
+## (c) Closed-shadow-root overlay on hostile pages — PASS (2026-09-19)
 
 Driven from a headless browser pane on `docs.stripe.com/payments`:
 
@@ -65,10 +66,24 @@ Driven from a headless browser pane on `docs.stripe.com/payments`:
 - Capture: hide → two rAF → shoot → restore took 28 ms.
 - The overlay survived Stripe's SPA route change (same document).
 
-Two bugs found and fixed by this run, both of which would have hit every page: `composedPath()`
-is empty once dispatch ends, so the target must be read synchronously and only the layout work
-deferred to rAF; and picking on `mousedown` then removing the `click` listener let the link's
-default action through — presses are now swallowed and the pick happens on `click`.
+Then on a real Chrome profile, on Stripe docs, Linear (signed in) and Notion:
+
+- **Element pick was dropped from v1** after trying it: not useful without the semantic-ancestor
+  work the spine defers (decisions.md #16). v1 is viewport + freehand.
+- **Hide-before-capture**: `visibility: hidden` + two frames let the toolbar into the shot on a
+  real machine. `display: none` + two frames hides it reliably with **no extra delay** (+0 ms)
+  (decisions.md #18).
+- **Crop math on a real capture**: cropping the 4064×2748 shot by freehand rect × dpr lands
+  exactly on the drawn box; the filmstrip will show this crop while the original is uploaded
+  untouched (decisions.md #17).
+- Freehand, capture and the cropped thumbnail behaved the same on Linear and Notion as on
+  Stripe; no page CSS or shortcut interference observed.
+
+Two bugs found and fixed by the headless run, both of which would have hit every page:
+`composedPath()` is empty once dispatch ends, so the target must be read synchronously and only
+the layout work deferred to rAF; and picking on `mousedown` then removing the `click` listener
+let the link's default action through. (Both were in the element-pick code, now removed, but
+the first applies to any capture-phase handler and is worth remembering.)
 
 ## (d) launchWebAuthFlow → signInWithIdToken — PASS (2026-09-19)
 
