@@ -23,8 +23,11 @@ async function ensureOffscreenDocument() {
       justification: "Record the microphone for the walkthrough narration",
     });
   }
-  await creating;
-  creating = null;
+  try {
+    await creating;
+  } finally {
+    creating = null;
+  }
   return "created";
 }
 

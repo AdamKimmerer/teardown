@@ -98,7 +98,9 @@ $("close").addEventListener("click", async () => {
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.target !== "panel") return;
-  if (message.type === "LEVEL") {
+  if (message.type === "STEP") {
+    log(message.text);
+  } else if (message.type === "LEVEL") {
     $("level").style.width = `${Math.min(100, message.rms * 400)}%`;
   } else if (message.type === "STARTED") {
     log(
@@ -122,5 +124,15 @@ chrome.storage.local.get("spikeA").then(({ spikeA }) => {
     showVerdict(spikeA);
   }
 });
+// Device labels appear only after permission is granted, which may happen in another tab (the
+// fallback page), so re-list whenever devices change or this panel becomes visible again.
+navigator.mediaDevices.addEventListener("devicechange", listDevices);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    listDevices();
+    showPermissionState();
+  }
+});
+
 showPermissionState();
 listDevices();

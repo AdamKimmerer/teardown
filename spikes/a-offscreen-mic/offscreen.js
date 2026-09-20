@@ -14,6 +14,7 @@ async function record(seconds, deviceId) {
   const startedAt = Date.now();
   await chrome.storage.local.set({ spikeA: { state: "starting", startedAt } });
 
+  toPanel({ type: "STEP", text: "offscreen: calling getUserMedia" });
   const constraints = {
     audio: deviceId ? { deviceId: { exact: deviceId } } : true,
   };
@@ -26,7 +27,14 @@ async function record(seconds, deviceId) {
   });
 
   // Level meter: RMS of the time-domain signal, sampled every 100 ms.
+  // An AudioContext starts suspended until something resumes it; a page with no window never
+  // gets a user gesture, so resume it explicitly and report the state (this is the spike).
   const audioContext = new AudioContext();
+  await audioContext.resume();
+  toPanel({
+    type: "STEP",
+    text: `offscreen: AudioContext state is "${audioContext.state}"`,
+  });
   const source = audioContext.createMediaStreamSource(stream);
   const analyser = audioContext.createAnalyser();
   analyser.fftSize = 2048;
@@ -58,6 +66,10 @@ async function record(seconds, deviceId) {
     recorder.onstop = resolve;
   });
   recorder.start(1000);
+  toPanel({
+    type: "STEP",
+    text: `offscreen: MediaRecorder ${recorder.state}, ${recorder.mimeType}`,
+  });
   await chrome.storage.local.set({ spikeA: { state: "recording", startedAt } });
 
   await new Promise((r) => setTimeout(r, seconds * 1000));
@@ -66,6 +78,7 @@ async function record(seconds, deviceId) {
 
   clearInterval(levelTimer);
   track.stop();
+  const audioContextState = audioContext.state;
   await audioContext.close();
 
   const bytes = chunks.reduce((n, c) => n + c.size, 0);
@@ -73,6 +86,7 @@ async function record(seconds, deviceId) {
     state: "done",
     startedAt,
     durationMs: Date.now() - startedAt,
+    audioContextState,
     mimeType: recorder.mimeType,
     chunkCount: chunks.length,
     bytes,
