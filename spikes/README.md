@@ -46,13 +46,12 @@ No setup. Open a page, click the icon; a dark toolbar appears bottom-centre. Cli
 
 Try it on three pages: `docs.stripe.com`, `linear.app` (signed in), and a public Notion page.
 
-- **Freehand**: drag a box. Scroll — it must stay where it was on screen.
-- **Element**: hover shows a pink outline and a selector in the status; click picks it. The page
-  must NOT navigate when you click a link this way. Esc cancels.
-- **Capture**: the toolbar hides, a shot is taken, and a thumbnail appears in the toolbar. Look
-  closely at the thumbnail: the toolbar must not be in it.
-- On Linear: while hovering in Element mode, press a Linear shortcut key (e.g. `c`). Note whether
-  Linear reacts (it may; this is a finding, not a failure).
+- **Freehand**: drag a box. Scroll — it must stay where it was on screen. Esc cancels a drag.
+- **Capture**: the toolbar hides, a shot is taken, and a thumbnail appears in the toolbar. With a
+  freehand box set, the thumbnail is the crop (rect × dpr from the full shot); without one it is
+  the full viewport. Look closely at the thumbnail: the toolbar and the dashed box must not be in
+  it. The **+ms** picker adds a wait between hiding and shooting — start at +0 and find the
+  smallest value at which the toolbar never appears; that number goes in the results.
 - Navigate within the app (Linear views, Notion pages). Does the toolbar survive? It should on
   same-document SPA navigation and vanish on a full page load (expected: the real extension
   re-injects on navigation).

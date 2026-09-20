@@ -54,3 +54,14 @@ one line to revisit.
     `https://<extension-id>.chromiumapp.org/` as an authorized redirect URI (Chrome team, on the
     chromium-extensions list). The same client also carries Supabase's
     `/auth/v1/callback` redirect for the web app, so there is one client id to keep in Supabase.
+16. **Element pick is out of v1** (deviation from spine §8.2, which had three modes). Trying it
+    in spike C showed it is not useful without the ancestor/semantic work the spine itself defers,
+    so v1 ships viewport and freehand only. The `element` enum value and the `selectors` /
+    `primary_element` columns stay in the schema so the mode has a home when diffing (§15) wants
+    it; nothing in v1 writes them.
+17. **The filmstrip shows the crop, the server keeps the original.** A capture is always the full
+    viewport (spine §10.1); when a freehand region is set, the extension crops a _copy_ for the
+    thumbnail so the user sees what they chose, and uploads the untouched original plus the rect.
+18. **Hide-before-capture uses `display: none`** on the overlay host, two animation frames, and
+    a short extra delay measured by spike C (`visibility: hidden` plus two frames was not enough
+    on a real machine). There is no API to exclude an element from `captureVisibleTab`.
