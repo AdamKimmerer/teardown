@@ -4,7 +4,7 @@ One paragraph per spike (build plan §Phases, row 1). Spikes (a) and (d) failing
 §Architecture; the others inform Phase 2–3 details. Folders live in `spikes/` until Phase 3
 replaces them.
 
-## (a) Offscreen-document microphone — in progress
+## (a) Offscreen-document microphone — PASS (2026-09-19)
 
 Findings so far on a real Chrome profile: the side panel cannot show the microphone prompt
 (a Chrome limitation for panels, popups and offscreen documents, not something to fix); a
@@ -15,8 +15,10 @@ only gains labels after the grant and must be re-listed on `devicechange` / visi
 Also found: the offscreen document has no `chrome.storage` (only `chrome.runtime` messaging);
 the first spike version died on that before reaching the mic (decisions.md #13).
 
-_Still to record: whether `getUserMedia` succeeds inside the offscreen document after the tab
-grant, the AudioContext state there, and whether the result survives closing the panel._
+Result: after the tab grant, `getUserMedia` succeeds inside the offscreen document, the
+AudioContext runs once resumed explicitly (no user gesture exists there), the level meter moves,
+and a 10 s MediaRecorder run completes with audio/webm;codecs=opus chunks. The recording engine
+can live in the offscreen document as spine §8.4 assumes; §17 M is resolved.
 
 ## (b) captureVisibleTab → PNG → IndexedDB → Supabase signed upload — server side verified 2026-09-19
 
