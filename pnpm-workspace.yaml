@@ -12,3 +12,4 @@ allowBuilds:
 # Versions pinned in package.json that are newer than that window are listed here.
 minimumReleaseAgeExclude:
   - "@types/node@22.20.4"
+  - openai@7.20.0

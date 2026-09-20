@@ -1,0 +1,22 @@
+import { createBoss, ensureQueues, QUEUES } from "./queue/boss.js";
+import type { TranscribeChunkJob } from "./queue/enqueue.js";
+import { transcribeChunkJob } from "./jobs/transcribeChunk.js";
+
+// The worker process: the same codebase as the API, started separately, consuming the queues.
+// Generate and export handlers are added in Phases 4 and 7.
+
+const boss = createBoss("worker");
+
+boss.on("error", (err) => console.error("pg-boss error", err));
+
+await boss.start();
+await ensureQueues(boss);
+
+// pg-boss hands each handler an array of jobs; with the default batch size that is one job.
+await boss.work<TranscribeChunkJob>(QUEUES.transcribeChunk, async (jobs) => {
+  for (const job of jobs) {
+    await transcribeChunkJob(job.data);
+  }
+});
+
+console.log(`worker listening on queues: ${Object.values(QUEUES).join(", ")}`);
