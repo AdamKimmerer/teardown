@@ -115,9 +115,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       );
     },
     UPLOAD_BIG: async () => {
-      const big = new Blob([
-        crypto.getRandomValues(new Uint8Array(6 * 1024 * 1024)),
-      ]);
+      // getRandomValues caps at 64 KB per call, so fill the 6 MB in slices.
+      const bytes = new Uint8Array(6 * 1024 * 1024);
+      for (let offset = 0; offset < bytes.length; offset += 65536) {
+        crypto.getRandomValues(bytes.subarray(offset, offset + 65536));
+      }
+      const big = new Blob([bytes]);
       return uploadBlob(
         big,
         "originals",
