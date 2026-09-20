@@ -2,6 +2,7 @@
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/node_modules/**", "**/dist/**"] },
+  // Build outputs are not linted; spikes/d-auth/panel.js is an esbuild bundle.
+  { ignores: ["**/node_modules/**", "**/dist/**", "spikes/d-auth/panel.js"] },
   ...tseslint.configs.recommended,
 );
