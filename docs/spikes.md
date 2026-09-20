@@ -4,10 +4,19 @@ One paragraph per spike (build plan §Phases, row 1). Spikes (a) and (d) failing
 §Architecture; the others inform Phase 2–3 details. Folders live in `spikes/` until Phase 3
 replaces them.
 
-## (a) Offscreen-document microphone — pending
+## (a) Offscreen-document microphone — in progress
 
-_To be filled in from a real Chrome profile: which grant path worked (side panel or full-tab page),
-whether the recording survived closing the panel, chunk count / bytes / peak RMS._
+Findings so far on a real Chrome profile: the side panel cannot show the microphone prompt
+(a Chrome limitation for panels, popups and offscreen documents, not something to fix); a
+full-tab extension page can, and the grant applies to the extension origin. Decision: the real
+extension opens that page as an onboarding step (decisions.md #12). The device list in the panel
+only gains labels after the grant and must be re-listed on `devicechange` / visibility.
+
+Also found: the offscreen document has no `chrome.storage` (only `chrome.runtime` messaging);
+the first spike version died on that before reaching the mic (decisions.md #13).
+
+_Still to record: whether `getUserMedia` succeeds inside the offscreen document after the tab
+grant, the AudioContext state there, and whether the result survives closing the panel._
 
 ## (b) captureVisibleTab → PNG → IndexedDB → Supabase signed upload — server side verified 2026-09-19
 

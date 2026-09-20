@@ -34,3 +34,17 @@ one line to revisit.
 10. **Storage buckets are created in `0001_init.sql`** (`insert into storage.buckets`) so the
     migration is the whole schema record, buckets included.
 11. **Prettier defaults** mean double quotes and 80 columns; nothing is overridden.
+
+## Phase 1 (2026-09-19)
+
+12. **Microphone permission is requested from a full extension tab, as part of onboarding.**
+    Chrome cannot show the permission bubble from a side panel, popup, or offscreen document
+    (`getUserMedia` fails as if dismissed; confirmed by Chrome DevRel on the chromium-extensions
+    list). Once granted from a tab, the offscreen document can use the mic. So first-run opens a
+    permission page in a tab and treats it as the first onboarding step rather than a workaround.
+13. **The offscreen document uses only `chrome.runtime` messaging.** No `chrome.storage`, no
+    other extension API is available there. Anything it needs persisted goes through a message to
+    the service worker.
+14. **Presigns are always upsert.** Supabase signed upload URLs reject a second PUT to the same
+    path with 409 unless the presign carried `x-upsert: true`; the API uses
+    `createSignedUploadUrl(path, { upsert: true })` so client retries are idempotent.
