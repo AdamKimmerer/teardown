@@ -1,6 +1,9 @@
 // Spike A offscreen document: getUserMedia + MediaRecorder for 10 s, RMS level every 100 ms.
-// Everything it learns is both messaged to the panel and written to chrome.storage.local, so the
-// result survives the panel being closed mid-recording (the thing this spike exists to prove).
+//
+// An offscreen document may use ONLY chrome.runtime messaging — no chrome.storage or any other
+// extension API (found the hard way: the first version wrote to chrome.storage.local here and
+// died before reaching the microphone). So every step is messaged out: to the panel for display,
+// and to the service worker, which persists the result so a reopened panel can find it.
 
 let recorder = null;
 let stream = null;
@@ -9,10 +12,15 @@ let levelTimer = null;
 function toPanel(message) {
   chrome.runtime.sendMessage({ target: "panel", ...message }).catch(() => {});
 }
+function saveResult(result) {
+  chrome.runtime
+    .sendMessage({ target: "service-worker", type: "SAVE_RESULT", result })
+    .catch(() => {});
+}
 
 async function record(seconds, deviceId) {
   const startedAt = Date.now();
-  await chrome.storage.local.set({ spikeA: { state: "starting", startedAt } });
+  saveResult({ state: "starting", startedAt });
 
   toPanel({ type: "STEP", text: "offscreen: calling getUserMedia" });
   const constraints = {
@@ -70,7 +78,7 @@ async function record(seconds, deviceId) {
     type: "STEP",
     text: `offscreen: MediaRecorder ${recorder.state}, ${recorder.mimeType}`,
   });
-  await chrome.storage.local.set({ spikeA: { state: "recording", startedAt } });
+  saveResult({ state: "recording", startedAt });
 
   await new Promise((r) => setTimeout(r, seconds * 1000));
   recorder.stop();
@@ -93,16 +101,16 @@ async function record(seconds, deviceId) {
     peakRms,
     zeroSamples,
   };
-  await chrome.storage.local.set({ spikeA: result });
+  saveResult(result);
   toPanel({ type: "DONE", ...result });
 }
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.target !== "offscreen") return;
   if (message.type === "START") {
-    record(message.seconds ?? 10, message.deviceId).catch(async (err) => {
+    record(message.seconds ?? 10, message.deviceId).catch((err) => {
       const result = { state: "error", name: err.name, message: err.message };
-      await chrome.storage.local.set({ spikeA: result });
+      saveResult(result);
       toPanel({ type: "ERROR", ...result });
     });
   }

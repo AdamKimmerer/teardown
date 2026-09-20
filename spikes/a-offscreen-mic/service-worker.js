@@ -41,6 +41,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  // The offscreen document cannot use chrome.storage, so it asks us to persist its result.
+  if (message.type === "SAVE_RESULT") {
+    chrome.storage.local
+      .set({ spikeA: message.result })
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }));
+    return true;
+  }
+
   if (message.type === "CLOSE_OFFSCREEN") {
     chrome.offscreen
       .closeDocument()
