@@ -17,7 +17,7 @@ docs/                 decisions log and spike results
 
 ## Run it locally in ten minutes
 
-You need Node 20 or newer, and Git.
+You need **Node 22** (`pg-boss` and `supabase-js` both require it; `brew install node@22`) and Git.
 
 ### 1. Install
 
@@ -62,7 +62,14 @@ cp apps/api/.env.example apps/api/.env
 pnpm --filter @teardown/api dev
 ```
 
-`GET http://localhost:3000/health` returns `{"ok":true}`.
+`GET http://localhost:3000/health` returns `{"ok":true}`. On first start the API creates
+pg-boss's own `pgboss` schema in the database; that is expected and not part of our migrations.
+
+The worker is a second process from the same package:
+
+```bash
+pnpm --filter @teardown/api dev:worker
+```
 
 ### 5. Check `GET /v1/me` with a real token
 
@@ -90,13 +97,15 @@ Without a token: `401 {"error":{"code":"unauthenticated","message":"Missing bear
 
 ## Everyday commands
 
-| Command                           | What it does                                            |
-| --------------------------------- | ------------------------------------------------------- |
-| `pnpm build`                      | Build every package (core first; the apps depend on it) |
-| `pnpm test`                       | Run every package's Vitest suite                        |
-| `pnpm typecheck`                  | `tsc --noEmit` in every package                         |
-| `pnpm lint` / `pnpm format`       | typescript-eslint recommended / Prettier defaults       |
-| `pnpm --filter @teardown/api dev` | API with reload on save, reading `apps/api/.env`        |
+| Command                                    | What it does                                                   |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `pnpm build`                               | Build every package (core first; the apps depend on it)        |
+| `pnpm test`                                | Run every package's Vitest suite                               |
+| `pnpm typecheck`                           | `tsc --noEmit` in every package                                |
+| `pnpm lint` / `pnpm format`                | typescript-eslint recommended / Prettier defaults              |
+| `pnpm --filter @teardown/api dev`          | API with reload on save, reading `apps/api/.env`               |
+| `pnpm --filter @teardown/api dev:worker`   | The queue worker (transcription; later generation and exports) |
+| `pnpm --filter @teardown/api fake-session` | Phase 2 end-to-end check (see Manual test scripts)             |
 
 After changing anything in `packages/core`, run `pnpm --filter @teardown/core build` so the apps
 see it (or leave `pnpm --filter @teardown/core build --watch` running).
@@ -105,13 +114,16 @@ see it (or leave `pnpm --filter @teardown/core build --watch` running).
 
 Each runtime dependency, and what it is for. Add one only when it replaces more than ~100 lines.
 
-| Package             | Used by | Why                                                           |
-| ------------------- | ------- | ------------------------------------------------------------- |
-| `zod`               | all     | Schemas that are also the only source of TypeScript types     |
-| `hono`              | api     | The HTTP router: routes, middleware, typed context            |
-| `@hono/node-server` | api     | Runs a Hono app on Node's `http` server                       |
-| `jose`              | api     | Verifies Supabase JWTs against the project's JWKS             |
-| `postgres`          | api     | Postgres client (`postgres.js`); queries are hand-written SQL |
+| Package                 | Used by | Why                                                                    |
+| ----------------------- | ------- | ---------------------------------------------------------------------- |
+| `zod`                   | all     | Schemas that are also the only source of TypeScript types              |
+| `hono`                  | api     | The HTTP router: routes, middleware, typed context                     |
+| `@hono/node-server`     | api     | Runs a Hono app on Node's `http` server                                |
+| `jose`                  | api     | Verifies Supabase JWTs against the project's JWKS                      |
+| `postgres`              | api     | Postgres client (`postgres.js`); queries are hand-written SQL          |
+| `@supabase/supabase-js` | api     | Storage client: signed upload/download URLs, object listing and delete |
+| `pg-boss`               | api     | Postgres-backed job queue for the worker process                       |
+| `openai`                | api     | OpenAI SDK: Whisper transcription now, vision models in Phase 4        |
 
 Dev: `typescript` 5.x (TypeScript 7 is not yet supported by `typescript-eslint`), `vitest`,
 `tsx` (runs TypeScript directly in development), `eslint` + `typescript-eslint`, `prettier`.
@@ -129,3 +141,26 @@ and, later, the credit ledger and the Stripe webhook.
 - [ ] `GET /v1/me` with a real token returns the user with `creditBalance: 0`.
 - [ ] Insert `(user_id, delta, reason) = (<id>, 5, 'promo')` into `credit_ledger` in the SQL editor;
       `GET /v1/me` now shows `creditBalance: 5`.
+
+**Phase 2**
+
+With the API and the worker both running, and the email/password user from Phase 0:
+
+```bash
+FAKE_EMAIL=you@example.com FAKE_PASSWORD=... pnpm --filter @teardown/api fake-session --delete
+```
+
+The script creates a session, uploads a spoken WAV (generated with macOS `say`) as one audio
+chunk and three PNGs as captures through the real presign → PUT → register routes, stops the
+session, waits for the worker, and prints the transcript with `[CAPTURE n]` markers.
+
+- [ ] It ends with `captureCount = 3 ✓; wordCount = N ✓` and a transcript that reads like the
+      narration, with `[CAPTURE 1]` near "capture this", `[CAPTURE 2]` near "capturing that
+      too" and `[CAPTURE 3]` near "one more capture".
+- [ ] With `--delete`, the last line reports `GET → 404; objects left in storage: 0; rows left: 0`.
+- [ ] `select * from usage_events` shows one `transcribe` row with `audio_seconds` ≈ 30 and a
+      cost estimate of about $0.003.
+- [ ] Run it again without `--delete`, then delete the session's row from `sessions` in the
+      dashboard: its captures, audio_chunks and transcript_words rows disappear (the cascade),
+      but its storage objects remain — only the API's DELETE cleans those.
+- [ ] `GET /v1/sessions/<someone else's id>` returns 404, not 403.

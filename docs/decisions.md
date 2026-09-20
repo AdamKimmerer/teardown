@@ -65,3 +65,23 @@ one line to revisit.
 18. **Hide-before-capture uses `display: none`** on the overlay host, two animation frames, and
     a short extra delay measured by spike C (`visibility: hidden` plus two frames was not enough
     on a real machine). There is no API to exclude an element from `captureVisibleTab`.
+
+## Phase 2 (2026-09-19)
+
+19. **`TRANSCRIBE_MODEL = "whisper-1"`** (§17 E resolved). It is the only OpenAI transcription
+    model that returns word-level timestamps ("Use whisper-1 when you need word or segment
+    timestamps", speech-to-text guide, 2026-09-19); the `gpt-*-transcribe` family does not.
+    $0.006/min. 25 MB per request, which a 30 s chunk is nowhere near.
+20. **Chunk overlap: the earlier chunk owns it.** Words from chunk N whose rebased start is before
+    the end of the audio that came before it are dropped. The worker logs how many, so §17 N
+    (boundary word-split rate) can be measured before deciding on a consolidating pass.
+21. **Node 22 is required to run the API and worker**, not just to deploy them: `pg-boss` 12 and
+    `supabase-js` 2.116 both refuse Node 20. `.nvmrc` already said 22.
+22. **Presigned paths are enforced.** `POST .../captures` and `POST .../chunks` reject a record
+    whose path is not exactly the key this API would have presigned for that id/offset, so a
+    record can never point at another user's object.
+23. **Worker retries are idempotent.** A re-run of `transcribe-chunk` deletes the chunk's words
+    before inserting; `singletonKey` keeps a re-registered chunk from queuing twice; 3 retries
+    with backoff for transient OpenAI errors.
+24. **Ownership is a 404.** Every `/sessions/:id` route loads the session by id and user; an id
+    that is not yours is indistinguishable from one that does not exist.
