@@ -70,9 +70,18 @@ is empty once dispatch ends, so the target must be read synchronously and only t
 deferred to rAF; and picking on `mousedown` then removing the `click` listener let the link's
 default action through — presses are now swallowed and the pick happens on `click`.
 
-## (d) launchWebAuthFlow → signInWithIdToken — pending
+## (d) launchWebAuthFlow → signInWithIdToken — PASS (2026-09-19)
 
-Built to Supabase's documented Chrome-extension flow (`response_type=id_token`, Chrome
-Extension–type OAuth client, client id in Authorized Client IDs) plus a hashed nonce. _To be
-filled in: whether Supabase accepted the token, whether `GET /v1/me` on the API accepted the
-resulting access token, whether refresh through the `chrome.storage.local` adapter worked._
+Works on a real Chrome profile: `launchWebAuthFlow` (`response_type=id_token`, hashed nonce)
+returns a Google ID token, `supabase.auth.signInWithIdToken({ provider: "google", token,
+nonce })` accepts it, and the session persists through the `chrome.storage.local` adapter.
+§17 F is resolved in favour of `launchWebAuthFlow`.
+
+Two things the docs got wrong, both now in decisions.md: the Google OAuth client must be of
+type **Web application** with `https://<extension-id>.chromiumapp.org/` as an authorized
+redirect URI (a "Chrome Extension" client, which Supabase's guide suggests, only permits
+`getAuthToken` and fails with `redirect_uri_mismatch`); and Google takes a few minutes to
+propagate redirect-URI changes, which looks like the same error. UX note: `launchWebAuthFlow`
+always opens Google in a small popup window; that is the API, not a choice. Signing in through
+the web app in a tab and handing the session to the extension is the alternative if the popup
+proves unpopular — a post-v1 item.
