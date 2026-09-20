@@ -7,7 +7,7 @@
   "permissions": ["identity", "sidePanel", "storage"],
   "host_permissions": ["https://*.supabase.co/*", "http://localhost:3000/*"],
   "oauth2": {
-    "client_id": "481084778132-3i6m371lkd3nn013vodesd3e79gmlvfe.apps.googleusercontent.com",
+    "client_id": "481084778132-3foptbk63e8r4q99o3im5n53m80mb36k.apps.googleusercontent.com",
     "scopes": ["openid", "email", "profile"]
   },
   "background": { "service_worker": "service-worker.js" },
