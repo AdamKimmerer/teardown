@@ -20,7 +20,7 @@ AudioContext runs once resumed explicitly (no user gesture exists there), the le
 and a 10 s MediaRecorder run completes with audio/webm;codecs=opus chunks. The recording engine
 can live in the offscreen document as spine §8.4 assumes; §17 M is resolved.
 
-## (b) captureVisibleTab → PNG → IndexedDB → Supabase signed upload — server side verified 2026-09-19
+## (b) captureVisibleTab → PNG → IndexedDB → Supabase signed upload — PASS (2026-09-19)
 
 Verified from Node against the real project, before the extension part was run:
 
@@ -37,7 +37,19 @@ Verified from Node against the real project, before the extension part was run:
   supabase-js does for `createSignedUploadUrl(path, { upsert: true })`) makes both the same
   URL and a fresh presign replace the object. **Phase 2 rule: every presign is upsert.**
 
-_Extension side (captureVisibleTab timing, PNG dimensions vs dpr, burst rate limit) pending._
+Extension side, on a real Chrome profile (Retina display, dpr 2):
+
+- `captureVisibleTab({ format: "png" })` returned a **4064×2748** PNG for a 2032×1374 CSS
+  viewport — physical pixels, exactly CSS × dpr, as spine §8.4 assumes. 0.76 MB for a text-heavy
+  page, **192 ms** per call. Blob → IndexedDB → filmstrip thumbnail via `URL.createObjectURL`
+  works with no base64 anywhere.
+- Five captures fired at once: **2 of 5 succeeded** in 266 ms; the other three failed with
+  `This request exceeds the MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND quota.` That is the ~2/s
+  limit the plan's queue paces around; the service worker's queue must recognise that message
+  and retry rather than drop.
+- Upload of a real capture to a signed URL: PASS, size verified on the server.
+- (The 6 MB check from the extension first failed on the spike's own test code —
+  `crypto.getRandomValues` caps at 64 KB — fixed; the 6 MB result above stands from Node.)
 
 ## (c) Closed-shadow-root overlay on hostile pages — Stripe docs verified 2026-09-19; Linear and Notion pending
 
