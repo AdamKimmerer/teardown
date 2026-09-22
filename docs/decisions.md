@@ -85,3 +85,28 @@ one line to revisit.
     with backoff for transient OpenAI errors.
 24. **Ownership is a 404.** Every `/sessions/:id` route loads the session by id and user; an id
     that is not yours is indistinguishable from one that does not exist.
+
+## Phase 3 (2026-09-21)
+
+25. **`POST /sessions/:id/resume`** was added to the API contract for the Stop screen's "keep
+    going" (spine §7, §11 step 4); the build plan's endpoint list did not have one. `review` →
+    `recording`, with the stopped stretch folded into `paused_ms`.
+26. **The panel is plain TypeScript + DOM, no React.** Five small views; React would be the
+    extension's largest dependency and the extension goes through Web Store review. React stays
+    in the web app.
+27. **Audio chunks are separate `MediaRecorder` runs, alternating with a 1 s overlap** (20 s
+    each). A single recorder with a timeslice produces header-less fragments Whisper cannot
+    read; each chunk here is a complete `.webm`.
+28. **The content script does not parse messages with Zod** (exception to convention 9). Zod 4
+    is 450 KB minified and the content script is injected into recorded pages; it receives two
+    trivial message shapes, checked by hand, and everything it sends is Zod-parsed by the
+    worker. Every other runtime uses the Zod union.
+29. **Auth lives in the service worker only.** One Supabase client, in one runtime; the panel
+    asks the worker to sign in, sign out, and for state. Two clients refreshing the same token
+    would race.
+30. **`alarms` permission** joined the manifest for the forgot-to-stop nudge; a service worker
+    cannot hold a 25-minute timer.
+31. **Recovery rules** (service worker start): a `recording` session with no clock in
+    `chrome.storage.session` means the browser restarted, so it becomes `review` locally and on
+    the server; a `recording` session with no offscreen document gets its recorder restarted;
+    anything in IndexedDB not marked uploaded is re-queued.

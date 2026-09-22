@@ -8,7 +8,7 @@ One repo, four deployables, one shared package:
 ```
 packages/core/        shared Zod schemas, session clock, marker insertion, crop math, API contract
 apps/api/             Hono HTTP API + pg-boss worker (Node)
-apps/extension/       Chrome MV3 extension: side panel, content script, offscreen recorder   (Phase 3)
+apps/extension/       Chrome MV3 extension: side panel, content script, offscreen recorder
 apps/web/             Vite + React web app                                                 (Phase 5)
 apps/landing/         static landing page, privacy, terms                                  (Phase 8)
 supabase/migrations/  the schema; nothing else records it
@@ -95,6 +95,23 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/v1/me
 Expected: `{"id":"…","email":"you@example.com","creditBalance":0,"connectors":[]}`.
 Without a token: `401 {"error":{"code":"unauthenticated","message":"Missing bearer token"}}`.
 
+### 6. Build and load the extension
+
+```bash
+cp apps/extension/.env.example apps/extension/.env   # same SUPABASE_URL and anon key as the API
+pnpm --filter @teardown/extension build
+```
+
+Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → `apps/extension/dist`.
+Pin it; its icon opens the side panel. `pnpm --filter @teardown/extension dev` rebuilds on
+save (then click ↻ on the extension's card). The manifest's `key` pins the extension id to
+`knphccpkdmgbckallojfoedobifonjop`, which the Google OAuth client's redirect URI depends on.
+
+Google sign-in in the extension needs a **Web application** OAuth client in Google Cloud with
+`https://knphccpkdmgbckallojfoedobifonjop.chromiumapp.org/` as an authorized redirect URI, its
+client id in `apps/extension/manifest.json` (`oauth2.client_id`) and in Supabase → Auth →
+Providers → Google → Authorized Client IDs (docs/decisions.md #15).
+
 ## Everyday commands
 
 | Command                                    | What it does                                                   |
@@ -107,6 +124,8 @@ Without a token: `401 {"error":{"code":"unauthenticated","message":"Missing bear
 | `pnpm --filter @teardown/api dev:worker`   | The queue worker (transcription; later generation and exports) |
 | `pnpm --filter @teardown/api fake-session` | Phase 2 end-to-end check (see Manual test scripts)             |
 | `pnpm --filter @teardown/api usage-events` | Print the latest `usage_events` rows (what did this cost)      |
+| `pnpm --filter @teardown/extension build`  | Bundle the extension into `apps/extension/dist`                |
+| `pnpm --filter @teardown/extension dev`    | Same, rebuilding on save                                       |
 
 After changing anything in `packages/core`, run `pnpm --filter @teardown/core build` so the apps
 see it (or leave `pnpm --filter @teardown/core build --watch` running).
@@ -115,16 +134,17 @@ see it (or leave `pnpm --filter @teardown/core build --watch` running).
 
 Each runtime dependency, and what it is for. Add one only when it replaces more than ~100 lines.
 
-| Package                 | Used by | Why                                                                    |
-| ----------------------- | ------- | ---------------------------------------------------------------------- |
-| `zod`                   | all     | Schemas that are also the only source of TypeScript types              |
-| `hono`                  | api     | The HTTP router: routes, middleware, typed context                     |
-| `@hono/node-server`     | api     | Runs a Hono app on Node's `http` server                                |
-| `jose`                  | api     | Verifies Supabase JWTs against the project's JWKS                      |
-| `postgres`              | api     | Postgres client (`postgres.js`); queries are hand-written SQL          |
-| `@supabase/supabase-js` | api     | Storage client: signed upload/download URLs, object listing and delete |
-| `pg-boss`               | api     | Postgres-backed job queue for the worker process                       |
-| `openai`                | api     | OpenAI SDK: Whisper transcription now, vision models in Phase 4        |
+| Package                 | Used by   | Why                                                                            |
+| ----------------------- | --------- | ------------------------------------------------------------------------------ |
+| `zod`                   | all       | Schemas that are also the only source of TypeScript types                      |
+| `hono`                  | api       | The HTTP router: routes, middleware, typed context                             |
+| `@hono/node-server`     | api       | Runs a Hono app on Node's `http` server                                        |
+| `jose`                  | api       | Verifies Supabase JWTs against the project's JWKS                              |
+| `postgres`              | api       | Postgres client (`postgres.js`); queries are hand-written SQL                  |
+| `@supabase/supabase-js` | api       | Storage client: signed upload/download URLs, object listing and delete         |
+| `pg-boss`               | api       | Postgres-backed job queue for the worker process                               |
+| `openai`                | api       | OpenAI SDK: Whisper transcription now, vision models in Phase 4                |
+| `@supabase/supabase-js` | extension | Google sign-in (`signInWithIdToken`) and session refresh in the service worker |
 
 Dev: `typescript` 5.x (TypeScript 7 is not yet supported by `typescript-eslint`), `vitest`,
 `tsx` (runs TypeScript directly in development), `eslint` + `typescript-eslint`, `prettier`.
@@ -166,3 +186,25 @@ session, waits for the worker, and prints the transcript with `[CAPTURE n]` mark
       dashboard: its captures, audio_chunks and transcript_words rows disappear (the cascade),
       but its storage objects remain — only the API's DELETE cleans those.
 - [ ] `GET /v1/sessions/<someone else's id>` returns 404, not 403.
+
+**Phase 3** — with the API and worker running and the extension loaded:
+
+- [ ] Sign in with Google from the panel (a Google popup; it closes itself).
+- [ ] First use: "Allow microphone" opens a tab; after allowing, the panel enables Start.
+- [ ] Start on a competitor's site. The level meter moves when you talk; a small dark toolbar
+      with a red dot appears bottom-centre of the page.
+- [ ] Capture with the page button, the panel button, and ⌘⇧S. Each adds a thumbnail to the
+      filmstrip within a second; the toolbar is never in the shot.
+- [ ] Region: drag a box, capture — the thumbnail shows only the box. Scroll: the box stays.
+      Clear removes it. Esc cancels a drag.
+- [ ] Switch tabs and navigate; the toolbar follows you. On `chrome://` pages ⌘⇧S still
+      captures (a plain viewport shot).
+- [ ] Close the side panel mid-session, wait 30 s, reopen: the meter is still moving, the
+      filmstrip is intact, and `pnpm --filter @teardown/api usage-events` keeps growing.
+- [ ] Mute the mic for 10 s: the red "No sound" alarm appears; unmute: it goes.
+- [ ] Stop. The Stop screen counts captures and words and gives the quality read; the word
+      count settles within ~30 s. Delete a capture from the filmstrip (× on hover).
+- [ ] Keep going → the meter returns; Stop again; the summary includes both stretches.
+- [ ] Generate → until Phase 4 the panel says generation is not available yet.
+- [ ] A 5-minute session on a real site ends with N captures and a transcript on the server:
+      `GET /v1/sessions/:id/summary` matches what the panel showed.
