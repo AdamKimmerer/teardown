@@ -4,6 +4,7 @@ import {
   ListSessionsResponseSchema,
   SessionDetailResponseSchema,
   SessionResponseSchema,
+  ResumeSessionRequestSchema,
   SessionSummaryResponseSchema,
   StopSessionRequestSchema,
 } from "@teardown/core/api-contract";
@@ -17,6 +18,7 @@ import {
   createSession,
   deleteSession,
   listSessionsForUser,
+  resumeSession,
   stopSession,
 } from "../db/queries/sessions.js";
 import { countTranscriptWordsForSession } from "../db/queries/transcriptWords.js";
@@ -74,6 +76,15 @@ sessionRoutes.post("/:id/stop", async (c) => {
   const body = StopSessionRequestSchema.parse(await c.req.json());
   const stopped = await stopSession(session.id, body.stoppedAt, body.pausedMs);
   return c.json(SessionResponseSchema.parse({ session: stopped }));
+});
+
+// POST /v1/sessions/:id/resume — "keep going" from the Stop screen: review → recording.
+sessionRoutes.post("/:id/resume", async (c) => {
+  const session = await ownedSession(c);
+  assertSessionStatus(session, ["review"]);
+  const body = ResumeSessionRequestSchema.parse(await c.req.json());
+  const resumed = await resumeSession(session.id, body.pausedMs);
+  return c.json(SessionResponseSchema.parse({ session: resumed }));
 });
 
 // DELETE /v1/sessions/:id — objects first, then the row and everything that cascades from it

@@ -1,0 +1,230 @@
+:root {
+  --bg: #fff;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --line: #e5e5e5;
+  --accent: #22aa77;
+  --accent-dark: #178a5f;
+  --alarm: #d33;
+}
+
+body {
+  margin: 0;
+  padding: 0 14px 14px;
+  font:
+    14px/1.45 system-ui,
+    -apple-system,
+    sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 0 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.brand {
+  font-weight: 700;
+}
+.account {
+  color: var(--muted);
+  font-size: 12px;
+}
+.account button {
+  all: unset;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: 6px;
+}
+
+h2 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+p {
+  margin: 8px 0;
+}
+.muted {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+button {
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+button:hover {
+  background: #ececec;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+button.primary:hover {
+  background: var(--accent-dark);
+}
+button.big {
+  width: 100%;
+  padding: 11px;
+  font-size: 15px;
+}
+button.quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+.row > button {
+  flex: 1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.field select {
+  font: inherit;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.card {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafafa;
+  margin-bottom: 10px;
+}
+
+.banner {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff3cd;
+  color: #664d03;
+  font-size: 12.5px;
+  margin-bottom: 10px;
+}
+.banner.error {
+  background: #f8d7da;
+  color: #58151c;
+}
+
+/* The level meter: VU-style, no time axis (spine §7). */
+.meter {
+  height: 12px;
+  background: #eee;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 6px 0 12px;
+}
+.meter > div {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 80ms linear;
+}
+
+.alarm {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--alarm);
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.nudge {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f2f2f2;
+  color: #444;
+  font-size: 12.5px;
+  margin: 6px 0 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.nudge button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.read {
+  font-size: 14.5px;
+}
+
+/* Filmstrip: thumbnails from local blobs, newest last. */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f4f4f4;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.thumb .n {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.thumb .x {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  border: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  padding: 0;
+  line-height: 20px;
+  font-size: 13px;
+  opacity: 0;
+}
+.thumb:hover .x {
+  opacity: 1;
+}
+.thumb.pending {
+  opacity: 0.6;
+}

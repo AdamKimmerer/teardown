@@ -103,6 +103,22 @@ export async function stopSession(
   return sessionFromRow(rows[0]!);
 }
 
+// Review → recording ("keep going"). The stop time is cleared; pausedMs now covers the gap.
+export async function resumeSession(
+  sessionId: string,
+  pausedMs: number,
+): Promise<Session> {
+  const rows = await sql<SessionRow[]>`
+    update sessions
+    set status = 'recording',
+        stopped_at = null,
+        paused_ms = ${pausedMs}
+    where id = ${sessionId}
+    returning ${columns}
+  `;
+  return sessionFromRow(rows[0]!);
+}
+
 // Moves a session along the state machine; failedStep is set only on 'failed'.
 export async function updateSessionStatus(
   sessionId: string,

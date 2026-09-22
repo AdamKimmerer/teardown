@@ -1,8 +1,8 @@
 # Phase 1 spike results
 
 One paragraph per spike (build plan §Phases, row 1). Spikes (a) and (d) failing would change
-§Architecture; the others inform Phase 2–3 details. Folders live in `spikes/` until Phase 3
-replaces them. **All four passed on 2026-09-19; the architecture stands as planned**, with the
+§Architecture; the others inform Phase 2–3 details. The spike folders were deleted at the end of
+Phase 3, once `apps/extension` replaced them; this file is the record. **All four passed on 2026-09-19; the architecture stands as planned**, with the
 adjustments recorded in `decisions.md` #12–18.
 
 ## (a) Offscreen-document microphone — PASS (2026-09-19)

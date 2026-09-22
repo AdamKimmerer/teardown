@@ -111,6 +111,13 @@ export const StopSessionRequestSchema = z.object({
 });
 export type StopSessionRequest = z.infer<typeof StopSessionRequestSchema>;
 
+// POST /sessions/:id/resume — "keep going" from the Stop screen; review → recording. pausedMs
+// includes the time spent stopped, so the clock stays continuous.
+export const ResumeSessionRequestSchema = z.object({
+  pausedMs: z.number().int().nonnegative(),
+});
+export type ResumeSessionRequest = z.infer<typeof ResumeSessionRequestSchema>;
+
 // GET /documents/:id
 export const DocumentVersionSummarySchema = DocumentVersionSchema.pick({
   id: true,

@@ -1,0 +1,24 @@
+{
+  "name": "@teardown/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Teardown Chrome extension (MV3): side panel, content-script controls, offscreen recorder, service worker.",
+  "scripts": {
+    "build": "node --env-file=.env build.mjs",
+    "dev": "node --env-file=.env build.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "@teardown/core": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/chrome": "latest",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
+  }
+}
