@@ -69,7 +69,7 @@ async function main() {
   log(`chunk ${chunk.id} registered (${chunk.status}); transcription queued`);
 
   // 3. Three captures, timed to land inside the narration (see NARRATION).
-  const captureTimes = [4_000, 11_000, 18_000];
+  const captureTimes = [12_000, 21_000, 30_000];
   for (const [i, tCapture] of captureTimes.entries()) {
     const id = crypto.randomUUID();
     const png = solidPng(800, 600, [40 + i * 60, 120, 200 - i * 60]);
