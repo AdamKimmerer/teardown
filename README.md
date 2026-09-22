@@ -106,6 +106,7 @@ Without a token: `401 {"error":{"code":"unauthenticated","message":"Missing bear
 | `pnpm --filter @teardown/api dev`          | API with reload on save, reading `apps/api/.env`               |
 | `pnpm --filter @teardown/api dev:worker`   | The queue worker (transcription; later generation and exports) |
 | `pnpm --filter @teardown/api fake-session` | Phase 2 end-to-end check (see Manual test scripts)             |
+| `pnpm --filter @teardown/api usage-events` | Print the latest `usage_events` rows (what did this cost)      |
 
 After changing anything in `packages/core`, run `pnpm --filter @teardown/core build` so the apps
 see it (or leave `pnpm --filter @teardown/core build --watch` running).
@@ -158,8 +159,9 @@ session, waits for the worker, and prints the transcript with `[CAPTURE n]` mark
       narration, with `[CAPTURE 1]` near "capture this", `[CAPTURE 2]` near "capturing that
       too" and `[CAPTURE 3]` near "one more capture".
 - [ ] With `--delete`, the last line reports `GET → 404; objects left in storage: 0; rows left: 0`.
-- [ ] `select * from usage_events` shows one `transcribe` row with `audio_seconds` ≈ 30 and a
-      cost estimate of about $0.003.
+- [ ] `pnpm --filter @teardown/api usage-events` shows one `transcribe` row with
+      `audio_seconds` ≈ 33 and a cost estimate of about $0.003 (its `session_id` is null after
+      `--delete`: usage rows outlive their session on purpose).
 - [ ] Run it again without `--delete`, then delete the session's row from `sessions` in the
       dashboard: its captures, audio_chunks and transcript_words rows disappear (the cascade),
       but its storage objects remain — only the API's DELETE cleans those.
