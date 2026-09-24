@@ -100,3 +100,16 @@ propagate redirect-URI changes, which looks like the same error. UX note: `launc
 always opens Google in a small popup window; that is the API, not a choice. Signing in through
 the web app in a tab and handing the session to the extension is the alternative if the popup
 proves unpopular — a post-v1 item.
+
+## Phase 3 measurement: chunk boundaries (§17 N) — 2026-09-24
+
+First real extension session (3 min, 8 chunks, 160 words, 4 captures). At the five ordinary
+1-second overlaps the transcript reads straight across every boundary with no doubled or
+missing words; the worker dropped 10 duplicate words in the overlaps (0–6 per boundary), which
+is the "earlier chunk owns the overlap" rule working. **Overlap alone is sufficient on this
+sample; no consolidating pass for now.** Keep an eye on it as longer sessions arrive
+(`scripts/recent-sessions.ts` and the worker's per-chunk drop counts).
+
+The other two boundaries were Stop → Keep going, and showed 0.9–2.2 s holes in the session
+clock: the stop was timestamped after the upload drain instead of when the microphone stopped.
+No audio was lost (none was being recorded), but the clock is now stamped at recorder stop.

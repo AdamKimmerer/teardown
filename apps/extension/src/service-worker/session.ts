@@ -91,9 +91,11 @@ export async function startSession(
 // Stop: the recorder flushes its last chunk, every upload finishes, then the server is told.
 export async function stopSession(): Promise<void> {
   const session = await requireSession("recording");
+  // Stamp the stop when the microphone stops, not after the uploads drain: the drain can take
+  // seconds, and that time is neither recorded nor paused, so it would open a hole in the clock.
+  const stoppedAt = Date.now();
   await sendMessage({ type: "RECORDER_STOP" });
   await drainUploads();
-  const stoppedAt = Date.now();
   await api.stopSession(session.id, {
     stoppedAt: new Date(stoppedAt).toISOString(),
     pausedMs: session.pausedMs,
