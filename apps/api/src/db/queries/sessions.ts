@@ -1,3 +1,4 @@
+import type { TransactionSql } from "postgres";
 import type { Session, SessionStatus } from "@teardown/core/schemas/session";
 import type { SessionListItem } from "@teardown/core/api-contract";
 import { sql } from "../client.js";
@@ -138,6 +139,34 @@ export async function updateSessionStatus(
 export async function deleteSession(sessionId: string): Promise<void> {
   await sql`
     delete from sessions
+    where id = ${sessionId}
+  `;
+}
+
+// Generation finished: the session is ready and takes the document's title (if it has one).
+export async function markSessionReady(
+  tx: TransactionSql,
+  sessionId: string,
+  title: string | null,
+): Promise<void> {
+  await tx`
+    update sessions
+    set status = 'ready',
+        failed_step = null,
+        title = coalesce(${title}, title)
+    where id = ${sessionId}
+  `;
+}
+
+// A refined document may have a new title; keep the session's in step (library list).
+export async function setSessionTitle(
+  tx: TransactionSql,
+  sessionId: string,
+  title: string | null,
+): Promise<void> {
+  await tx`
+    update sessions
+    set title = coalesce(${title}, title)
     where id = ${sessionId}
   `;
 }

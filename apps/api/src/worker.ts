@@ -1,9 +1,10 @@
 import { createBoss, ensureQueues, QUEUES } from "./queue/boss.js";
-import type { TranscribeChunkJob } from "./queue/enqueue.js";
+import type { GenerateJob, TranscribeChunkJob } from "./queue/enqueue.js";
+import { generateJob } from "./jobs/generate.js";
 import { transcribeChunkJob } from "./jobs/transcribeChunk.js";
 
 // The worker process: the same codebase as the API, started separately, consuming the queues.
-// Generate and export handlers are added in Phases 4 and 7.
+// The export handler is added in Phase 7.
 
 const boss = createBoss("worker");
 
@@ -16,6 +17,12 @@ await ensureQueues(boss);
 await boss.work<TranscribeChunkJob>(QUEUES.transcribeChunk, async (jobs) => {
   for (const job of jobs) {
     await transcribeChunkJob(job.data);
+  }
+});
+
+await boss.work<GenerateJob>(QUEUES.generate, async (jobs) => {
+  for (const job of jobs) {
+    await generateJob(job.data);
   }
 });
 

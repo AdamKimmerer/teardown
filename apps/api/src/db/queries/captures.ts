@@ -140,3 +140,15 @@ export async function deleteCapture(
       and session_id = ${sessionId}
   `;
 }
+
+// Records where a capture's derived crop was stored (a cache: it can always be re-derived).
+export async function setCropPath(
+  captureId: string,
+  cropPath: string,
+): Promise<void> {
+  await sql`
+    update captures
+    set crop_path = ${cropPath}
+    where id = ${captureId}
+  `;
+}

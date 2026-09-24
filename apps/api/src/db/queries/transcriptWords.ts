@@ -3,32 +3,43 @@ import { sql } from "../client.js";
 
 export type NewTranscriptWord = Omit<TranscriptWord, "id">;
 
-// Bulk insert of one chunk's words, already rebased to the session clock by the caller.
-export async function insertTranscriptWords(
+// Replaces a chunk's words and marks it transcribed, in one transaction. The chunk row is locked
+// first, so if two runs transcribe the same chunk (the queued job and the generate job's
+// catch-up) they take turns and the second replaces the first instead of doubling the words.
+export async function replaceChunkWords(
+  chunkId: string,
   words: NewTranscriptWord[],
 ): Promise<void> {
-  if (words.length === 0) return;
-  const rows = words.map((w) => ({
-    session_id: w.sessionId,
-    chunk_id: w.chunkId,
-    word: w.word,
-    start_ms: w.startMs,
-    end_ms: w.endMs,
-    ordinal: w.ordinal,
-  }));
-  await sql`
-    insert into transcript_words ${sql(rows, "session_id", "chunk_id", "word", "start_ms", "end_ms", "ordinal")}
-  `;
-}
-
-// A retried transcription must not double the words, so the job clears the chunk's rows first.
-export async function deleteTranscriptWordsForChunk(
-  chunkId: string,
-): Promise<void> {
-  await sql`
-    delete from transcript_words
-    where chunk_id = ${chunkId}
-  `;
+  await sql.begin(async (tx) => {
+    await tx`
+      select id
+      from audio_chunks
+      where id = ${chunkId}
+      for update
+    `;
+    await tx`
+      delete from transcript_words
+      where chunk_id = ${chunkId}
+    `;
+    if (words.length > 0) {
+      const rows = words.map((w) => ({
+        session_id: w.sessionId,
+        chunk_id: w.chunkId,
+        word: w.word,
+        start_ms: w.startMs,
+        end_ms: w.endMs,
+        ordinal: w.ordinal,
+      }));
+      await tx`
+        insert into transcript_words ${tx(rows, "session_id", "chunk_id", "word", "start_ms", "end_ms", "ordinal")}
+      `;
+    }
+    await tx`
+      update audio_chunks
+      set status = 'transcribed'
+      where id = ${chunkId}
+    `;
+  });
 }
 
 // The whole transcript in spoken order (start time, then position within the chunk).

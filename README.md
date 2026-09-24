@@ -114,19 +114,21 @@ Providers → Google → Authorized Client IDs (docs/decisions.md #15).
 
 ## Everyday commands
 
-| Command                                       | What it does                                                   |
-| --------------------------------------------- | -------------------------------------------------------------- |
-| `pnpm build`                                  | Build every package (core first; the apps depend on it)        |
-| `pnpm test`                                   | Run every package's Vitest suite                               |
-| `pnpm typecheck`                              | `tsc --noEmit` in every package                                |
-| `pnpm lint` / `pnpm format`                   | typescript-eslint recommended / Prettier defaults              |
-| `pnpm --filter @teardown/api dev`             | API with reload on save, reading `apps/api/.env`               |
-| `pnpm --filter @teardown/api dev:worker`      | The queue worker (transcription; later generation and exports) |
-| `pnpm --filter @teardown/api fake-session`    | Phase 2 end-to-end check (see Manual test scripts)             |
-| `pnpm --filter @teardown/api usage-events`    | Print the latest `usage_events` rows (what did this cost)      |
-| `pnpm --filter @teardown/api recent-sessions` | The last five sessions: captures, chunks, words, audio         |
-| `pnpm --filter @teardown/extension build`     | Bundle the extension into `apps/extension/dist`                |
-| `pnpm --filter @teardown/extension dev`       | Same, rebuilding on save                                       |
+| Command                                                   | What it does                                                   |
+| --------------------------------------------------------- | -------------------------------------------------------------- |
+| `pnpm build`                                              | Build every package (core first; the apps depend on it)        |
+| `pnpm test`                                               | Run every package's Vitest suite                               |
+| `pnpm typecheck`                                          | `tsc --noEmit` in every package                                |
+| `pnpm lint` / `pnpm format`                               | typescript-eslint recommended / Prettier defaults              |
+| `pnpm --filter @teardown/api dev`                         | API with reload on save, reading `apps/api/.env`               |
+| `pnpm --filter @teardown/api dev:worker`                  | The queue worker (transcription; later generation and exports) |
+| `pnpm --filter @teardown/api fake-session`                | Phase 2 end-to-end check (see Manual test scripts)             |
+| `pnpm --filter @teardown/api usage-events`                | Print the latest `usage_events` rows (what did this cost)      |
+| `pnpm --filter @teardown/api recent-sessions`             | The last five sessions: captures, chunks, words, audio         |
+| `pnpm --filter @teardown/api grant-credits --email <you>` | Add promo credits to an account (default 5)                    |
+| `pnpm --filter @teardown/api generate-latest`             | Phase 4 end-to-end check on your latest stopped session        |
+| `pnpm --filter @teardown/extension build`                 | Bundle the extension into `apps/extension/dist`                |
+| `pnpm --filter @teardown/extension dev`                   | Same, rebuilding on save                                       |
 
 After changing anything in `packages/core`, run `pnpm --filter @teardown/core build` so the apps
 see it (or leave `pnpm --filter @teardown/core build --watch` running).
@@ -135,17 +137,18 @@ see it (or leave `pnpm --filter @teardown/core build --watch` running).
 
 Each runtime dependency, and what it is for. Add one only when it replaces more than ~100 lines.
 
-| Package                 | Used by   | Why                                                                            |
-| ----------------------- | --------- | ------------------------------------------------------------------------------ |
-| `zod`                   | all       | Schemas that are also the only source of TypeScript types                      |
-| `hono`                  | api       | The HTTP router: routes, middleware, typed context                             |
-| `@hono/node-server`     | api       | Runs a Hono app on Node's `http` server                                        |
-| `jose`                  | api       | Verifies Supabase JWTs against the project's JWKS                              |
-| `postgres`              | api       | Postgres client (`postgres.js`); queries are hand-written SQL                  |
-| `@supabase/supabase-js` | api       | Storage client: signed upload/download URLs, object listing and delete         |
-| `pg-boss`               | api       | Postgres-backed job queue for the worker process                               |
-| `openai`                | api       | OpenAI SDK: Whisper transcription now, vision models in Phase 4                |
-| `@supabase/supabase-js` | extension | Google sign-in (`signInWithIdToken`) and session refresh in the service worker |
+| Package                 | Used by   | Why                                                                              |
+| ----------------------- | --------- | -------------------------------------------------------------------------------- |
+| `zod`                   | all       | Schemas that are also the only source of TypeScript types                        |
+| `hono`                  | api       | The HTTP router: routes, middleware, typed context                               |
+| `@hono/node-server`     | api       | Runs a Hono app on Node's `http` server                                          |
+| `jose`                  | api       | Verifies Supabase JWTs against the project's JWKS                                |
+| `postgres`              | api       | Postgres client (`postgres.js`); queries are hand-written SQL                    |
+| `@supabase/supabase-js` | api       | Storage client: signed upload/download URLs, object listing and delete           |
+| `pg-boss`               | api       | Postgres-backed job queue for the worker process                                 |
+| `openai`                | api       | OpenAI SDK: Whisper transcription now, vision models in Phase 4                  |
+| `sharp`                 | api       | Crops region captures from originals; shrinks images to the model's patch budget |
+| `@supabase/supabase-js` | extension | Google sign-in (`signInWithIdToken`) and session refresh in the service worker   |
 
 Dev: `typescript` 5.x (TypeScript 7 is not yet supported by `typescript-eslint`), `vitest`,
 `tsx` (runs TypeScript directly in development), `eslint` + `typescript-eslint`, `prettier`.
@@ -209,3 +212,22 @@ session, waits for the worker, and prints the transcript with `[CAPTURE n]` mark
 - [ ] Generate → until Phase 4 the panel says generation is not available yet.
 - [ ] A 5-minute session on a real site ends with N captures and a transcript on the server:
       `GET /v1/sessions/:id/summary` matches what the panel showed.
+
+**Phase 4** — with the API and worker running, after recording and stopping a session:
+
+```bash
+pnpm --filter @teardown/api grant-credits --email you@gmail.com
+pnpm --filter @teardown/api generate-latest
+```
+
+- [ ] Status goes `syncing → processing → ready`; the document prints, and is saved to
+      `apps/api/scripts/output/<session>-v1.md`.
+- [ ] The image check line ends in ✓ (every `[IMAGE_n]` has an image; none repeated).
+- [ ] The usage line shows the model, tokens, one `w×h` per image (none wider than ~2,000 px),
+      and a cost of fractions of a cent.
+- [ ] "contract-breaking refine → 422 … versions now 1 ✓" and "ordinary refine → 201 (version 2) ✓".
+- [ ] Your balance went down by exactly one (`GET /v1/me`); the rejected refine and the kept one
+      cost nothing.
+- [ ] Generate from the extension's Stop screen: the panel clears and a tab opens at
+      `localhost:5173/sessions/<id>` (a dead page until Phase 5). With 0 credits it says
+      "Out of credits" instead.

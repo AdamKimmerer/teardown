@@ -85,3 +85,16 @@ export async function previousChunkEndMs(
   `;
   return rows[0]?.end_ms ?? 0;
 }
+
+// Every chunk of a session, in recording order.
+export async function listChunksForSession(
+  sessionId: string,
+): Promise<AudioChunk[]> {
+  const rows = await sql<ChunkRow[]>`
+    select ${columns}
+    from audio_chunks
+    where session_id = ${sessionId}
+    order by offset_ms
+  `;
+  return rows.map(chunkFromRow);
+}

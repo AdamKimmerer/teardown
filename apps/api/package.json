@@ -14,7 +14,9 @@
     "start:worker": "node --env-file=.env dist/worker.js",
     "fake-session": "tsx --env-file=.env scripts/fake-session.ts",
     "usage-events": "tsx --env-file=.env scripts/usage-events.ts",
-    "recent-sessions": "tsx --env-file=.env scripts/recent-sessions.ts"
+    "recent-sessions": "tsx --env-file=.env scripts/recent-sessions.ts",
+    "grant-credits": "tsx --env-file=.env scripts/grant-credits.ts",
+    "generate-latest": "tsx --env-file=.env scripts/generate-latest.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
@@ -25,7 +27,8 @@
     "zod": "^4.6.5",
     "@supabase/supabase-js": "^2.116.0",
     "openai": "^7.20.0",
-    "pg-boss": "^12.33.2"
+    "pg-boss": "^12.33.2",
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "tsx": "^4.23.13",

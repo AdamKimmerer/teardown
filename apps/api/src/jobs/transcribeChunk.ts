@@ -7,8 +7,7 @@ import {
 } from "../db/queries/audioChunks.js";
 import { findSession } from "../db/queries/sessions.js";
 import {
-  deleteTranscriptWordsForChunk,
-  insertTranscriptWords,
+  replaceChunkWords,
   type NewTranscriptWord,
 } from "../db/queries/transcriptWords.js";
 import { insertUsageEvent } from "../db/queries/usageEvents.js";
@@ -50,9 +49,7 @@ export async function transcribeChunkJob({
       ordinal,
     }));
 
-    await deleteTranscriptWordsForChunk(chunk.id);
-    await insertTranscriptWords(words);
-    await updateChunkStatus(chunk.id, "transcribed");
+    await replaceChunkWords(chunk.id, words);
 
     await insertUsageEvent({
       userId: session.userId,

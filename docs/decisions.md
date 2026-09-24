@@ -110,3 +110,34 @@ one line to revisit.
     `chrome.storage.session` means the browser restarted, so it becomes `review` locally and on
     the server; a `recording` session with no offscreen document gets its recorder restarted;
     anything in IndexedDB not marked uploaded is re-queued.
+
+## Phase 4 (2026-09-24)
+
+32. **`VISION_MODEL = "gpt-6-luna"`**, the cheapest OpenAI model with image input (models page,
+    2026-09-24; $0.10 / $0.50 per million tokens), via the Responses API. `gpt-6-sol` is the
+    next tier at ~20×. One constant in `ai/models.ts`.
+33. **Images go to the model at `detail: "high"`, pre-shrunk by us** to the 2,500-patch budget
+    (32-px patches; never enlarged). The first real generation: 4 images = 6,744 patches, 9,061
+    input tokens in total, consistent with the documented ~1.2× patch multiplier plus ~1,000
+    tokens of text (§17 L, first measurement). ≈ $0.0014 for the whole generation.
+34. **Crops exist only for region captures.** A viewport capture's image is its original;
+    `crop_path` stays null for it. `images/imageSource.ts` is the one place that decides.
+35. **Generation normalises image placeholders instead of failing.** Invalid or repeated
+    `[IMAGE_n]` are removed; captures the model left out are appended under "Other captures".
+    A paid generation never fails over formatting and never loses a capture.
+36. **The credit is spent in the save transaction, after a row lock on the user.** The plan's
+    one-statement conditional insert is kept, but on its own two concurrent transactions can
+    both read a balance of 1; `select … from users … for update` first serialises spends per
+    user. 402 is checked before queuing; a failed generation costs nothing.
+37. **No automatic retry of a failed generation.** `sessions.failed_step` records `transcribe`,
+    `crop`, `analyze`, `save` or `credits`; POST `/generate` on a failed session re-runs the job,
+    and the steps already done (transcripts, cached crops) pass straight through.
+38. **Refine is text-only in v1**: the current Markdown plus the marked transcript, no images.
+39. **The output contract lives in `packages/core/src/outputContract.ts`** (the plan named
+    `apps/api/src/ai/outputContract.ts` but listed its tests under core; pure functions belong
+    in core). Thresholds: 0.5–2× length, ≥ 40% of distinct words kept.
+40. **A chunk's words are replaced in one transaction with a row lock**, so the generate job's
+    transcription catch-up and a still-queued transcribe job cannot double a chunk's words.
+41. **`scripts/devAccessToken.ts` (local only)** mints a real access token for an existing user
+    with the service-role key (admin magic link, no email sent) and revokes it afterwards, so
+    dev scripts can call the API as a Google-account user. Nothing under `src/` may import it.

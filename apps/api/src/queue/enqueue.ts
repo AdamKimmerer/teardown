@@ -17,3 +17,19 @@ export async function enqueueTranscribeChunk(
     expireInSeconds: 300,
   });
 }
+
+export type GenerateJob = { sessionId: string };
+
+// Queues a generation. No automatic retry: a failure is recorded on the session and the user
+// retries (the OpenAI SDK already retries transient errors inside the call). singletonKey stops a
+// double-clicked Generate from queuing twice.
+export async function enqueueGenerate(
+  boss: PgBoss,
+  job: GenerateJob,
+): Promise<void> {
+  await boss.send(QUEUES.generate, job, {
+    singletonKey: job.sessionId,
+    retryLimit: 0,
+    expireInSeconds: 1_800,
+  });
+}

@@ -5,6 +5,8 @@ import { errorToJson } from "./middleware/errorToJson.js";
 import { createBoss, ensureQueues } from "./queue/boss.js";
 import { captureRoutes } from "./routes/captures.js";
 import { chunkRoutes } from "./routes/chunks.js";
+import { documentRoutes } from "./routes/documents.js";
+import { generateRoutes } from "./routes/generate.js";
 import { meRoutes } from "./routes/me.js";
 import { sessionRoutes } from "./routes/sessions.js";
 
@@ -27,6 +29,8 @@ v1.route("/me", meRoutes);
 v1.route("/sessions", sessionRoutes);
 v1.route("/sessions/:id/captures", captureRoutes);
 v1.route("/sessions/:id/chunks", chunkRoutes(boss));
+v1.route("/sessions/:id/generate", generateRoutes(boss));
+v1.route("/documents", documentRoutes);
 app.route("/v1", v1);
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
