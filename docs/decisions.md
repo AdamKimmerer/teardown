@@ -141,3 +141,25 @@ one line to revisit.
 41. **`scripts/devAccessToken.ts` (local only)** mints a real access token for an existing user
     with the service-role key (admin magic link, no email sent) and revokes it afterwards, so
     dev scripts can call the API as a Google-account user. Nothing under `src/` may import it.
+
+## Phase 5 (2026-09-24)
+
+42. **React 19**, not the plan's 18: it is current and nothing in the plan depends on 18.
+    React Router 8 (everything imports from `react-router`), TanStack Query 5, Vite 8.
+43. **Web sign-in is Supabase's PKCE flow with an explicit exchange** on `/auth/callback`
+    (`detectSessionInUrl` off, one shared exchange per code because React runs effects twice in
+    development). Where the user was going survives the Google round trip in sessionStorage,
+    so a tab the extension opens lands on its session after sign-in.
+44. **Sign-out is per surface.** Supabase's `signOut()` defaults to every session of the user;
+    the web app, the extension and the web app's 401 handler all pass `scope: "local"`. Signing
+    out everywhere is what Delete account does.
+45. **CORS allows `WEB_APP_URL` only.** The extension's requests come from its service worker with
+    host permissions and are not subject to CORS.
+46. **Delete account** marks `users.deleted_at`, deletes the `<user_id>` prefix in every bucket,
+    then `auth.admin.deleteUser`, which cascades to every row and revokes every refresh token.
+47. **The web app can Generate a stopped session (and retry a failed one)**, not only the
+    extension: the extension's Discard promises the session stays in the library, so the
+    library must be able to finish it.
+48. **Documents render `[IMAGE_n]` as Markdown images before rendering**; raw HTML in model output
+    is never rendered; images display at their own size up to the column width and open full
+    size on click (spine §13). Earlier versions are read-only; refine always edits the current.

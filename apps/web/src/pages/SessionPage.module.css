@@ -1,0 +1,31 @@
+.top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.back {
+  color: var(--muted);
+  text-decoration: none;
+}
+.back:hover {
+  color: var(--fg);
+}
+.spacer {
+  flex: 1;
+}
+.notice {
+  max-width: 70ch;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.notice button {
+  margin-left: 8px;
+  padding: 3px 10px;
+  font-size: 13px;
+}

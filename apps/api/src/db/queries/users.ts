@@ -17,3 +17,13 @@ export async function findUserById(id: string): Promise<User | null> {
     createdAt: row.created_at.toISOString(),
   };
 }
+
+// Marks an account as being deleted, so it cannot act while its objects are removed. The row
+// itself goes when the auth user is deleted (on delete cascade).
+export async function markUserDeleting(id: string): Promise<void> {
+  await sql`
+    update users
+    set deleted_at = now()
+    where id = ${id}
+  `;
+}

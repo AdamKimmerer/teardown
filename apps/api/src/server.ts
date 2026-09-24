@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { config } from "./config.js";
 import { errorToJson } from "./middleware/errorToJson.js";
 import { createBoss, ensureQueues } from "./queue/boss.js";
@@ -22,6 +23,18 @@ app.onError(errorToJson);
 
 // Unauthenticated; for the host's health check.
 app.get("/health", (c) => c.json({ ok: true }));
+
+// The web app is on another origin, so the browser needs CORS. The extension's requests come
+// from its service worker with host permissions, which CORS does not apply to.
+app.use(
+  "/v1/*",
+  cors({
+    origin: config.WEB_APP_URL,
+    allowHeaders: ["authorization", "content-type"],
+    allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+    maxAge: 600,
+  }),
+);
 
 // Everything the clients call lives under /v1. One route file per resource.
 const v1 = new Hono();

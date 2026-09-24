@@ -9,7 +9,7 @@ One repo, four deployables, one shared package:
 packages/core/        shared Zod schemas, session clock, marker insertion, crop math, API contract
 apps/api/             Hono HTTP API + pg-boss worker (Node)
 apps/extension/       Chrome MV3 extension: side panel, content script, offscreen recorder
-apps/web/             Vite + React web app                                                 (Phase 5)
+apps/web/             Vite + React web app
 apps/landing/         static landing page, privacy, terms                                  (Phase 8)
 supabase/migrations/  the schema; nothing else records it
 docs/                 decisions log and spike results
@@ -104,6 +104,8 @@ pnpm --filter @teardown/extension build
 
 Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → `apps/extension/dist`.
 Pin it; its icon opens the side panel. `pnpm --filter @teardown/extension dev` rebuilds on
+| `pnpm --filter @teardown/web dev` | Web app on http://localhost:5173 with hot reload |
+| `pnpm --filter @teardown/web build` | Typecheck and build the web app into `apps/web/dist` |
 save (then click ↻ on the extension's card). The manifest's `key` pins the extension id to
 `knphccpkdmgbckallojfoedobifonjop`, which the Google OAuth client's redirect URI depends on.
 
@@ -111,6 +113,25 @@ Google sign-in in the extension needs a **Web application** OAuth client in Goog
 `https://knphccpkdmgbckallojfoedobifonjop.chromiumapp.org/` as an authorized redirect URI, its
 client id in `apps/extension/manifest.json` (`oauth2.client_id`) and in Supabase → Auth →
 Providers → Google → Authorized Client IDs (docs/decisions.md #15).
+
+### 7. Run the web app
+
+One-time setup so Google sign-in works in the browser (the extension's sign-in is separate):
+
+1. **Google Cloud → APIs & Services → Credentials →** the _Web application_ client
+   (`481084778132-3foptbk…`) → **Authorized redirect URIs** → add
+   `https://<project-ref>.supabase.co/auth/v1/callback` → Save. Copy its **Client secret**.
+2. **Supabase → Authentication → Sign In / Providers → Google**: paste that client secret (the
+   client id is already there from the extension setup) → Save.
+3. **Supabase → Authentication → URL Configuration**: Site URL `http://localhost:5173`, and add
+   `http://localhost:5173/auth/callback` under Redirect URLs.
+
+```bash
+cp apps/web/.env.example apps/web/.env   # same Supabase URL and anon key; VITE_API_URL=http://localhost:3000
+pnpm --filter @teardown/web dev          # http://localhost:5173
+```
+
+The API allows cross-origin requests from `WEB_APP_URL` only (default `http://localhost:5173`).
 
 ## Everyday commands
 
@@ -137,18 +158,23 @@ see it (or leave `pnpm --filter @teardown/core build --watch` running).
 
 Each runtime dependency, and what it is for. Add one only when it replaces more than ~100 lines.
 
-| Package                 | Used by   | Why                                                                              |
-| ----------------------- | --------- | -------------------------------------------------------------------------------- |
-| `zod`                   | all       | Schemas that are also the only source of TypeScript types                        |
-| `hono`                  | api       | The HTTP router: routes, middleware, typed context                               |
-| `@hono/node-server`     | api       | Runs a Hono app on Node's `http` server                                          |
-| `jose`                  | api       | Verifies Supabase JWTs against the project's JWKS                                |
-| `postgres`              | api       | Postgres client (`postgres.js`); queries are hand-written SQL                    |
-| `@supabase/supabase-js` | api       | Storage client: signed upload/download URLs, object listing and delete           |
-| `pg-boss`               | api       | Postgres-backed job queue for the worker process                                 |
-| `openai`                | api       | OpenAI SDK: Whisper transcription now, vision models in Phase 4                  |
-| `sharp`                 | api       | Crops region captures from originals; shrinks images to the model's patch budget |
-| `@supabase/supabase-js` | extension | Google sign-in (`signInWithIdToken`) and session refresh in the service worker   |
+| Package                        | Used by   | Why                                                                              |
+| ------------------------------ | --------- | -------------------------------------------------------------------------------- |
+| `zod`                          | all       | Schemas that are also the only source of TypeScript types                        |
+| `hono`                         | api       | The HTTP router: routes, middleware, typed context                               |
+| `@hono/node-server`            | api       | Runs a Hono app on Node's `http` server                                          |
+| `jose`                         | api       | Verifies Supabase JWTs against the project's JWKS                                |
+| `postgres`                     | api       | Postgres client (`postgres.js`); queries are hand-written SQL                    |
+| `@supabase/supabase-js`        | api       | Storage client: signed upload/download URLs, object listing and delete           |
+| `pg-boss`                      | api       | Postgres-backed job queue for the worker process                                 |
+| `openai`                       | api       | OpenAI SDK: Whisper transcription now, vision models in Phase 4                  |
+| `sharp`                        | api       | Crops region captures from originals; shrinks images to the model's patch budget |
+| `@supabase/supabase-js`        | extension | Google sign-in (`signInWithIdToken`) and session refresh in the service worker   |
+| `react`, `react-dom`           | web       | The UI library                                                                   |
+| `react-router`                 | web       | URLs → pages (`src/router.tsx`)                                                  |
+| `@tanstack/react-query`        | web       | Server state: fetching, caching, polling and invalidation of API data            |
+| `react-markdown`, `remark-gfm` | web       | Renders documents (GitHub-flavoured Markdown: tables, lists) without raw HTML    |
+| `@supabase/supabase-js`        | web       | Google sign-in and session refresh in the browser                                |
 
 Dev: `typescript` 5.x (TypeScript 7 is not yet supported by `typescript-eslint`), `vitest`,
 `tsx` (runs TypeScript directly in development), `eslint` + `typescript-eslint`, `prettier`.
@@ -229,5 +255,23 @@ pnpm --filter @teardown/api generate-latest
 - [ ] Your balance went down by exactly one (`GET /v1/me`); the rejected refine and the kept one
       cost nothing.
 - [ ] Generate from the extension's Stop screen: the panel clears and a tab opens at
-      `localhost:5173/sessions/<id>` (a dead page until Phase 5). With 0 credits it says
-      "Out of credits" instead.
+      `localhost:5173/sessions/<id>`. With 0 credits it says "Out of credits" instead.
+
+**Phase 5** — API, worker and web app running (`pnpm --filter @teardown/web dev`):
+
+- [ ] `http://localhost:5173` sends you to Sign in; Google sign-in lands on Sessions.
+- [ ] Record a session in the extension, Stop, Generate: the tab that opens shows "Finishing
+      the transcript…" / "Writing your document…", then the document, without a reload.
+- [ ] Signed out when the extension opens that tab? Signing in lands on that session, not the list.
+- [ ] Every screenshot shows in the document; clicking one opens it full size.
+- [ ] Refine ("shorten the summary"): "Saved as version 2"; the version picker shows v1 and v2;
+      picking v1 shows the notice and hides the refine box.
+- [ ] A refine that breaks the contract ("remove all the images") shows "That edit didn't take;
+      try rewording" and the document is unchanged.
+- [ ] Sessions list: title, date, capture count, status; Delete asks first, then the row goes.
+- [ ] A session you discarded in the extension shows "Ready to generate" with a Generate button.
+- [ ] Sign out in the web app does **not** sign the extension out (and vice versa).
+- [ ] Account → Delete my account → type the phrase → you land on Sign in with "Your account
+      and everything in it has been deleted." `pnpm --filter @teardown/api recent-sessions`
+      shows none of your sessions, the extension asks you to sign in again, and the storage
+      buckets have no folder for your old user id.

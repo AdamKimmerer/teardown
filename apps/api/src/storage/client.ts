@@ -1,15 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
-import { config } from "../config.js";
+import { supabaseAdmin } from "../supabaseAdmin.js";
 
-// The service-role Storage client. It bypasses RLS and bucket policies, which is why every
-// path it touches is built by objectKeys.ts from the caller's own user id.
-export const storage = createClient(
-  config.SUPABASE_URL,
-  config.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: { persistSession: false, autoRefreshToken: false },
-  },
-).storage;
+// Supabase Storage through the service-role client. It bypasses bucket policies, which is why
+// every path it touches is built by objectKeys.ts from the caller's own user id.
+export const storage = supabaseAdmin.storage;
 
 export const BUCKETS = {
   originals: "originals",

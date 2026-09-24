@@ -1,0 +1,75 @@
+/* The document itself: comfortable reading width, serif body, images at their own size up to
+   the column width (spine §13: max-width 100% is the whole layout policy; no upscaling). */
+.document {
+  font-family: var(--font-reading);
+  font-size: 17.5px;
+  line-height: 1.65;
+  max-width: 70ch;
+}
+.document h1 {
+  font-family: var(--font);
+  font-size: 30px;
+  margin: 0 0 18px;
+}
+.document h2 {
+  font-family: var(--font);
+  font-size: 21px;
+  margin: 34px 0 10px;
+}
+.document h3 {
+  font-family: var(--font);
+  font-size: 17px;
+  margin: 24px 0 8px;
+}
+.document p,
+.document ul,
+.document ol {
+  margin: 0 0 14px;
+}
+.document li {
+  margin: 4px 0;
+}
+.document blockquote {
+  margin: 0 0 14px;
+  padding-left: 14px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+}
+.document code {
+  font-size: 0.88em;
+  background: #f1f1ee;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.document table {
+  border-collapse: collapse;
+  margin: 0 0 16px;
+  font-family: var(--font);
+  font-size: 14.5px;
+}
+.document th,
+.document td {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.imageLink {
+  display: inline-block;
+  max-width: 100%;
+  margin: 8px 0;
+}
+.image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  background: #fff;
+}
+.missing {
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--muted);
+}

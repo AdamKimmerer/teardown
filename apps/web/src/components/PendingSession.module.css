@@ -1,0 +1,30 @@
+.card {
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  max-width: 560px;
+}
+.card h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+.card p {
+  margin: 0 0 14px;
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 10px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

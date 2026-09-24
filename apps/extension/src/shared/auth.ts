@@ -75,8 +75,10 @@ export async function getAccessToken(): Promise<string | null> {
   return session?.access_token ?? null;
 }
 
+// Signs out of the extension only; the web app stays signed in ("local" scope). Signing out
+// everywhere is what Delete account does.
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
 }
 
 function randomHex(bytes: number): string {
