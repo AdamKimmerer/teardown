@@ -114,18 +114,19 @@ Providers → Google → Authorized Client IDs (docs/decisions.md #15).
 
 ## Everyday commands
 
-| Command                                    | What it does                                                   |
-| ------------------------------------------ | -------------------------------------------------------------- |
-| `pnpm build`                               | Build every package (core first; the apps depend on it)        |
-| `pnpm test`                                | Run every package's Vitest suite                               |
-| `pnpm typecheck`                           | `tsc --noEmit` in every package                                |
-| `pnpm lint` / `pnpm format`                | typescript-eslint recommended / Prettier defaults              |
-| `pnpm --filter @teardown/api dev`          | API with reload on save, reading `apps/api/.env`               |
-| `pnpm --filter @teardown/api dev:worker`   | The queue worker (transcription; later generation and exports) |
-| `pnpm --filter @teardown/api fake-session` | Phase 2 end-to-end check (see Manual test scripts)             |
-| `pnpm --filter @teardown/api usage-events` | Print the latest `usage_events` rows (what did this cost)      |
-| `pnpm --filter @teardown/extension build`  | Bundle the extension into `apps/extension/dist`                |
-| `pnpm --filter @teardown/extension dev`    | Same, rebuilding on save                                       |
+| Command                                       | What it does                                                   |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| `pnpm build`                                  | Build every package (core first; the apps depend on it)        |
+| `pnpm test`                                   | Run every package's Vitest suite                               |
+| `pnpm typecheck`                              | `tsc --noEmit` in every package                                |
+| `pnpm lint` / `pnpm format`                   | typescript-eslint recommended / Prettier defaults              |
+| `pnpm --filter @teardown/api dev`             | API with reload on save, reading `apps/api/.env`               |
+| `pnpm --filter @teardown/api dev:worker`      | The queue worker (transcription; later generation and exports) |
+| `pnpm --filter @teardown/api fake-session`    | Phase 2 end-to-end check (see Manual test scripts)             |
+| `pnpm --filter @teardown/api usage-events`    | Print the latest `usage_events` rows (what did this cost)      |
+| `pnpm --filter @teardown/api recent-sessions` | The last five sessions: captures, chunks, words, audio         |
+| `pnpm --filter @teardown/extension build`     | Bundle the extension into `apps/extension/dist`                |
+| `pnpm --filter @teardown/extension dev`       | Same, rebuilding on save                                       |
 
 After changing anything in `packages/core`, run `pnpm --filter @teardown/core build` so the apps
 see it (or leave `pnpm --filter @teardown/core build --watch` running).
