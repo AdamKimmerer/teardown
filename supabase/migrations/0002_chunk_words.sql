@@ -1,8 +1,7 @@
--- 0002: a chunk's words live on the chunk (docs/decisions.md #53; a deliberate deviation from the
--- spine's table list). Words are written one chunk at a time and read one session at a time;
--- nothing queries a single word. A row per word forced a lock/delete/insert transaction, an
--- ordinal column, and an unindexed chunk_id foreign key. One jsonb array per chunk removes all
--- three: saving a chunk's transcript becomes a single-row update.
+-- 0002: a chunk's words live on the chunk. Words are written one chunk at a time and read one
+-- session at a time; nothing queries a single word. A row per word forced a lock/delete/insert
+-- transaction, an ordinal column, and an unindexed chunk_id foreign key. One jsonb array per
+-- chunk removes all three: saving a chunk's transcript becomes a single-row update.
 
 -- 1. The words, each { "word": string, "startMs": int, "endMs": int }, already rebased onto the
 --    session clock and stored in spoken order (array order replaces ordinal). The check states

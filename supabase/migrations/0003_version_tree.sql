@@ -1,4 +1,4 @@
--- 0003: versions form a tree (docs/decisions.md #55). A refine can start from any version, not
+-- 0003: versions form a tree. A refine can start from any version, not
 -- only the newest, so each version records the one it was made from. Each also keeps the
 -- model's one-line note on what it changed, which the Revisions panel shows as its reply.
 

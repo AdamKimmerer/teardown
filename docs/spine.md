@@ -6,8 +6,7 @@ panel + in-page controls), a web app, and an API with a worker.
 **What this document is.** The product and its architecture: what Teardown does, the rules it is
 built on, and why. It describes the working prototype as built through Phase 5 (2026-09-26),
 plus what has been decided but not built yet (billing, exports, landing page, launch), which is
-marked **Planned**. Everything here is current; earlier spines were written before any code
-existed and are archived outside the repo. Nothing in them is needed to understand this one.
+marked **Planned**.
 
 **Companion documents** (all in `docs/`):
 
@@ -15,7 +14,7 @@ existed and are archived outside the repo. Nothing in them is needed to understa
   remaining phases and their done-criteria, and the platform facts the code relies on.
 - `STATUS.md` — where the build is right now and how to run it.
 - `backlog.md` — ideas worth keeping that are not in v1.
-- `decisions.md` — decisions made after this baseline, one entry each, with the reason.
+- `decisions.md` — decisions as they are made, one entry each, with the reason.
 
 Section numbers are cited from code comments ("spine §8.4"), so keep them stable when editing.
 

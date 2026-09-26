@@ -7,6 +7,5 @@ dist/
 .DS_Store
 supabase/.temp/
 supabase/.branches/
-spikes/d-auth/panel.js
 apps/api/scripts/fixtures/
 apps/api/scripts/output/

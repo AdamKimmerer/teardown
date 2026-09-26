@@ -7,7 +7,7 @@ code as built through Phase 5 (2026-09-26) and specifies what is still to build.
 
 `spine.md` is the authority on the product and its architecture (what and why). This document is
 the authority on how. If the two ever disagree, stop and resolve it rather than choosing one
-silently. `STATUS.md` says where the build is; `decisions.md` records changes after this baseline.
+silently. `STATUS.md` says where the build is; `decisions.md` records each decision and its reason.
 
 ---
 

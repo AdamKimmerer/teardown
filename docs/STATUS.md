@@ -2,7 +2,7 @@
 
 The one-page state of Teardown v1. Updated at the end of each phase.
 
-Last updated: 2026-09-26, at the baseline (end of Phase 5).
+Last updated: 2026-09-26 (end of Phase 5).
 
 ## Progress
 
