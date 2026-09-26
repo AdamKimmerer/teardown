@@ -244,9 +244,9 @@ session, waits for the worker, and prints the transcript with `[CAPTURE n]` mark
 - [ ] Capture with the page button, the panel button, and ⌘⇧S. Each adds a thumbnail to the
       filmstrip within a second; the toolbar is never in the shot.
 - [ ] Region: drag a box, capture — the thumbnail shows only the box. Scroll: the box stays.
-      Drag a corner or edge to resize it, the green "Move" grip to move it; Esc during a
-      resize or move snaps it back. The × on its corner removes it (as does Clear). The page
-      under the box stays clickable.
+      Drag a corner or edge to resize it, the green "Move" grip to move it. The × on its
+      corner removes it (as does Clear). Esc cancels a region while you are drawing it. The
+      page under the box stays clickable.
 - [ ] The idle panel shows the "Stuck for a word? Just ask." tip.
 - [ ] Switch tabs and navigate; the toolbar follows you. On `chrome://` pages ⌘⇧S still
       captures (a plain viewport shot).
@@ -300,7 +300,9 @@ pnpm --filter @teardown/api generate-latest
       text links its sources. `pnpm --filter @teardown/api usage-events` shows the refine with
       its cost (about 1¢ with a search).
 - [ ] Sessions list: title, date, capture count, status; Delete asks first, then the row goes.
-- [ ] A session you discarded in the extension shows "Ready to generate" with a Generate button.
+- [ ] Discard in the extension (Stop screen → Discard → Discard) deletes the session: it is
+      gone from the web app's library. A stopped session you did _not_ discard shows "Ready to
+      generate" with a Generate button.
 - [ ] Sign out in the web app does **not** sign the extension out (and vice versa).
 - [ ] Account → Delete my account → type the phrase → you land on Sign in with "Your account
       and everything in it has been deleted." `pnpm --filter @teardown/api recent-sessions`

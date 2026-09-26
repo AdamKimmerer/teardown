@@ -138,11 +138,20 @@ export async function generateSession(): Promise<string> {
   return url;
 }
 
-// Throw the local copy away. The server keeps the session for the web app's library.
+// Discard: delete the session everywhere (spine §14: delete means delete). A discarded
+// recording has no use in the web app, so it does not linger in the library. Deleting on the
+// server comes first; if that fails the session stays here and the user can try again. A 404
+// means it is already gone.
 export async function dismissSession(): Promise<void> {
   const session = await getLocalSession();
-  if (session?.status === "recording")
+  if (session === null) return;
+  if (session.status === "recording")
     await sendMessage({ type: "RECORDER_STOP" });
+  try {
+    await api.deleteSession(session.id);
+  } catch (err) {
+    if (!(err instanceof ApiError && err.status === 404)) throw err;
+  }
   clearNudges();
   await forgetSession();
 }

@@ -115,15 +115,14 @@ export function createRegionEditor(
     editor.clear();
   });
 
-  // Esc cancels whatever is in progress: a drawing, or a move or resize (which snaps back).
+  // Esc cancels drawing a region (a move or resize just stops where the pointer is released).
   document.addEventListener(
     "keydown",
     (e) => {
-      if (e.key !== "Escape" || (!armed && !adjusting && !drawStart)) return;
+      if (e.key !== "Escape" || (!armed && !drawStart)) return;
       e.preventDefault();
       e.stopPropagation();
       drawStart = null;
-      adjusting = null;
       editor.disarm();
       setRegion(region);
     },

@@ -157,7 +157,7 @@ one line to revisit.
     host permissions and are not subject to CORS.
 46. **Delete account** marks `users.deleted_at`, deletes the `<user_id>` prefix in every bucket,
     then `auth.admin.deleteUser`, which cascades to every row and revokes every refresh token.
-47. **The web app can Generate a stopped session (and retry a failed one)**, not only the
+47. _(Reason superseded by #62; the behaviour stays.)_ **The web app can Generate a stopped session (and retry a failed one)**, not only the
     extension: the extension's Discard promises the session stays in the library, so the
     library must be able to finish it.
 48. **Documents render `[IMAGE_n]` as Markdown images before rendering**; raw HTML in model output
@@ -231,3 +231,11 @@ one line to revisit.
     picking: `t_pick_start_ms` becomes when the adjustment began. The content script is split
     into `markup.ts`, `regionEditor.ts` and `content.ts`.
 61. **"Just ask" tips** in the extension (idle and recording) and in the request box.
+62. **Discard deletes the session** (server rows and storage objects, then the local copy). A
+    discarded recording has no use in the web app and only cluttered the library. If the delete
+    fails the session stays in the extension and the user can try again; a 404 counts as done.
+    Stopped sessions that were never discarded still appear in the library with Generate.
+63. **Esc cancels only the drawing of a region**, not a move or resize (removed as unneeded).
+64. **Refine notes use the user's words.** The model echoed its own rule text ("every image
+    placeholder must remain"), so the rules now say "screenshots" throughout and mention the
+    `[IMAGE_n]` marker once as a storage detail. Three live declines checked: all plain.

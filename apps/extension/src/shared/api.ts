@@ -79,6 +79,8 @@ export const api = {
       undefined,
       SessionSummaryResponseSchema,
     ),
+  deleteSession: (id: string) =>
+    request("DELETE", `/sessions/${id}`, undefined, null),
   generate: (id: string) =>
     request(
       "POST",
