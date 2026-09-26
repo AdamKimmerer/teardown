@@ -23,3 +23,6 @@ change, so they always describe Teardown as it is; this log keeps the reasons.
 6. **Two questions added for later phases**: export controls and formats, including whether a
    common help-center/docs/CMS import format is worth offering (spine §17.4, Phase 7); and the
    product name and domain, which may change with domain availability (spine §17.5, Phase 8).
+7. **Phase 7 includes an FAQ experiment**: try generating an FAQ from a session with a second
+   prompt, to see whether help-center and docs writing is a use worth offering (build plan,
+   Phase 7). It is an experiment, not a commitment to a second document type.
