@@ -7,7 +7,7 @@ import {
 
 // The filmstrip: one thumbnail per capture in the local buffer, rendered from the Blob via
 // URL.createObjectURL (never base64). A freehand capture shows its crop so the user sees what
-// they chose; the original stays untouched (decisions.md #17).
+// they chose; the original stays untouched (spine §8.2).
 
 const objectUrls = new Map<string, string>();
 

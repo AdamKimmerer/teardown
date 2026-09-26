@@ -1,7 +1,7 @@
 import { PgBoss } from "pg-boss";
 import { config } from "../config.js";
 
-// The three job queues (build plan §Architecture). Names are the only thing shared between the
+// The three job queues (build plan §Stack). Names are the only thing shared between the
 // API, which sends, and the worker, which works.
 export const QUEUES = {
   transcribeChunk: "transcribe-chunk",

@@ -1,23 +1,27 @@
 # Teardown
 
 Narrate a competitor walkthrough, capture screenshots on demand, and get a structured document
-that lands where your team works (HTML, Obsidian, Notion).
+that lands where your team works.
 
 One repo, four deployables, one shared package:
 
 ```
-packages/core/        shared Zod schemas, session clock, marker insertion, crop math, API contract
-apps/api/             Hono HTTP API + pg-boss worker (Node)
+packages/core/        shared Zod schemas, API contract, session clock, markers, crop math, output contract
+apps/api/             Hono HTTP API + pg-boss worker (Node 22)
 apps/extension/       Chrome MV3 extension: side panel, content script, offscreen recorder
 apps/web/             Vite + React web app
 apps/landing/         static landing page, privacy, terms                                  (Phase 8)
 supabase/migrations/  the schema; nothing else records it
-docs/                 decisions log and spike results
+docs/                 spine (product + architecture), build plan, status, decisions, backlog
 ```
 
-## Run it locally in ten minutes
+**New here?** Start with [docs/README.md](docs/README.md): it lists the documents and the order to
+read them in. This file covers setup, commands, dependencies and the manual test scripts.
 
-You need **Node 22** (`pg-boss` and `supabase-js` both require it; `brew install node@22`) and Git.
+## Run it locally
+
+You need **Node 22** (`pg-boss` and `supabase-js` both require it) and Git. With `fnm` or `nvm`,
+`.nvmrc` selects it.
 
 ### 1. Install
 
@@ -30,138 +34,120 @@ pnpm test                # core tests must pass before anything else
 
 ### 2. Create a Supabase project
 
-1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard). The free tier is fine.
-2. **Authentication → Providers → Google**: enable it. (Client IDs come from Google Cloud; you can
-   leave it enabled with placeholders until Phase 1.) Email is enabled by default; leave it on for
-   the manual token test below.
-3. **Project Settings → JWT Keys**: the project must use asymmetric signing keys (the default for
+1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard). The free tier is
+   fine.
+2. **Project Settings → JWT Keys**: the project must use asymmetric signing keys (the default for
    new projects). If you see a legacy HS256 secret, click "Migrate JWT secret". The API verifies
    tokens against the project's JWKS endpoint and cannot verify HS256 tokens.
 
-### 3. Apply the schema
+### 3. Set up Google sign-in
 
-Install the Supabase CLI (`brew install supabase/tap/supabase`), then from the repo root:
+One Google OAuth client serves both the extension and the web app.
 
-```bash
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
+1. **Google Cloud → APIs & Services → Credentials → Create OAuth client**, type **Web
+   application**. Authorized redirect URIs:
+   - `https://knphccpkdmgbckallojfoedobifonjop.chromiumapp.org/` (the extension; the id is
+     pinned by the manifest's `key`)
+   - `https://<project-ref>.supabase.co/auth/v1/callback` (the web app)
 
-`db push` applies `supabase/migrations/*.sql` in order. No Docker is needed for this; only
-`supabase start` (a local Postgres) needs it, and nothing here uses that.
+   Redirect URI changes take a few minutes to reach Google's servers; until then sign-in fails
+   with `redirect_uri_mismatch`.
 
-If you would rather not install the CLI, paste `supabase/migrations/0001_init.sql` into the
-dashboard's SQL editor and run it. Do this only once; the CLI will not know it has been applied.
+2. **Supabase → Authentication → Sign In / Providers → Google**: enable it, paste the client id
+   and client secret, and add the same client id under **Authorized Client IDs** (the extension
+   signs in with a Google ID token).
+3. **Supabase → Authentication → URL Configuration**: Site URL `http://localhost:5173`, and
+   `http://localhost:5173/auth/callback` under Redirect URLs.
+4. Put the client id in `apps/extension/manifest.json` → `oauth2.client_id`.
 
-### 4. Configure and start the API
+### 4. Create the `.env` files
 
 ```bash
 cp apps/api/.env.example apps/api/.env
-# fill in SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from Project Settings → API, and DATABASE_URL
-# from Connect → "Session pooler" (not the direct db.<ref> host; it is IPv6-only, see .env.example)
-pnpm --filter @teardown/api dev
+cp apps/extension/.env.example apps/extension/.env
+cp apps/web/.env.example apps/web/.env
 ```
 
-`GET http://localhost:3000/health` returns `{"ok":true}`. On first start the API creates
-pg-boss's own `pgboss` schema in the database; that is expected and not part of our migrations.
+- `apps/api/.env`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` from
+  Project Settings → API; `DATABASE_URL` from **Connect → Session pooler** (the direct
+  `db.<ref>` host is IPv6-only and fails with `ENOTFOUND` on IPv4-only networks);
+  `OPENAI_API_KEY`; `WEB_APP_URL=http://localhost:5173`.
+- `apps/extension/.env` and `apps/web/.env`: the same Supabase URL and anon key, the API URL
+  (`http://localhost:3000`) and, for the extension, the web app URL. None of these are secrets.
 
-The worker is a second process from the same package:
+### 5. Apply the schema
 
-```bash
-pnpm --filter @teardown/api dev:worker
-```
-
-### 5. Check `GET /v1/me` with a real token
-
-Every `/v1` route needs a Supabase access token. Until the web app exists, the quickest way to
-get one is an email/password user:
-
-1. Dashboard → **Authentication → Users → Add user**: an email, a password, and tick
-   "Auto Confirm User". The `users` row is created by a trigger.
-2. Exchange the password for a token (the anon key is under Project Settings → API):
-
-```bash
-curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
-  -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
-  -d '{"email":"you@example.com","password":"..."}' | jq -r .access_token
-```
-
-3. Call the API with it:
-
-```bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/v1/me
-```
-
-Expected: `{"id":"…","email":"you@example.com","creditBalance":0,"connectors":[]}`.
-Without a token: `401 {"error":{"code":"unauthenticated","message":"Missing bearer token"}}`.
-
-### 6. Build and load the extension
-
-```bash
-cp apps/extension/.env.example apps/extension/.env   # same SUPABASE_URL and anon key as the API
-pnpm --filter @teardown/extension build
-```
-
-Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → `apps/extension/dist`.
-Pin it; its icon opens the side panel. `pnpm --filter @teardown/extension dev` rebuilds on
-| `pnpm --filter @teardown/web dev` | Web app on http://localhost:5173 with hot reload |
-| `pnpm --filter @teardown/web build` | Typecheck and build the web app into `apps/web/dist` |
-save (then click ↻ on the extension's card). The manifest's `key` pins the extension id to
-`knphccpkdmgbckallojfoedobifonjop`, which the Google OAuth client's redirect URI depends on.
-
-Google sign-in in the extension needs a **Web application** OAuth client in Google Cloud with
-`https://knphccpkdmgbckallojfoedobifonjop.chromiumapp.org/` as an authorized redirect URI, its
-client id in `apps/extension/manifest.json` (`oauth2.client_id`) and in Supabase → Auth →
-Providers → Google → Authorized Client IDs (docs/decisions.md #15).
-
-### 7. Run the web app
-
-One-time setup so Google sign-in works in the browser (the extension's sign-in is separate):
-
-1. **Google Cloud → APIs & Services → Credentials →** the _Web application_ client
-   (`481084778132-3foptbk…`) → **Authorized redirect URIs** → add
-   `https://<project-ref>.supabase.co/auth/v1/callback` → Save. Copy its **Client secret**.
-2. **Supabase → Authentication → Sign In / Providers → Google**: paste that client secret (the
-   client id is already there from the extension setup) → Save.
-3. **Supabase → Authentication → URL Configuration**: Site URL `http://localhost:5173`, and add
-   `http://localhost:5173/auth/callback` under Redirect URLs.
-
-```bash
-cp apps/web/.env.example apps/web/.env   # same Supabase URL and anon key; VITE_API_URL=http://localhost:3000
-pnpm --filter @teardown/web dev          # http://localhost:5173
-```
-
-The API allows cross-origin requests from `WEB_APP_URL` only (default `http://localhost:5173`).
-
-### Applying a new migration
-
-Migrations are applied with the Supabase CLI through `npx` (nothing to install or link),
-pointed at the same database as the API. From the repo root:
+From the repo root (nothing to install or link; no Docker):
 
 ```bash
 npx supabase@latest db push --db-url "$(grep '^DATABASE_URL=' apps/api/.env | cut -d= -f2-)" --dry-run
 ```
 
-Drop `--dry-run` to apply. `0001` was originally run in the SQL editor and has been marked as
-applied in the CLI's history, so only newer files are pushed.
+Drop `--dry-run` to apply. This runs `supabase/migrations/*.sql` in order and records them, so
+later runs apply only new files.
+
+### 6. Start the API, worker and web app
+
+Three terminals, from the repo root:
+
+```bash
+pnpm --filter @teardown/api dev          # http://localhost:3000
+pnpm --filter @teardown/api dev:worker   # the queue worker
+pnpm --filter @teardown/web dev          # http://localhost:5173
+```
+
+`GET http://localhost:3000/health` returns `{"ok":true}`. On first start the API creates
+pg-boss's own `pgboss` schema in the database; that is expected and not part of our migrations.
+The API allows cross-origin requests from `WEB_APP_URL` only.
+
+### 7. Build and load the extension
+
+```bash
+pnpm --filter @teardown/extension build   # or `dev` to rebuild on save
+```
+
+Chrome → `chrome://extensions` → Developer mode → **Load unpacked** → `apps/extension/dist`. Pin
+it; its icon opens the side panel. After a rebuild, click ↻ on the extension's card.
+
+Open `http://localhost:5173` and sign in with Google; you should land on an empty Sessions list.
+New accounts have no credits: `pnpm --filter @teardown/api grant-credits --email <you>`.
+
+### Calling the API directly
+
+Every `/v1` route needs a Supabase access token. For a quick check without the web app, create
+an email/password user (Dashboard → Authentication → Users → Add user, tick "Auto Confirm User";
+the Email provider must be enabled), then:
+
+```bash
+TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"..."}' | jq -r .access_token)
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/v1/me
+```
+
+Expected: `{"id":"…","email":"you@example.com","creditBalance":0,"connectors":[]}`. Without a
+token: `401 {"error":{"code":"unauthenticated","message":"Missing bearer token"}}`. The dev
+scripts below can also act as a Google-account user with `--email`, without a password.
 
 ## Everyday commands
 
-| Command                                                   | What it does                                                   |
-| --------------------------------------------------------- | -------------------------------------------------------------- |
-| `pnpm build`                                              | Build every package (core first; the apps depend on it)        |
-| `pnpm test`                                               | Run every package's Vitest suite                               |
-| `pnpm typecheck`                                          | `tsc --noEmit` in every package                                |
-| `pnpm lint` / `pnpm format`                               | typescript-eslint recommended / Prettier defaults              |
-| `pnpm --filter @teardown/api dev`                         | API with reload on save, reading `apps/api/.env`               |
-| `pnpm --filter @teardown/api dev:worker`                  | The queue worker (transcription; later generation and exports) |
-| `pnpm --filter @teardown/api fake-session`                | Phase 2 end-to-end check (see Manual test scripts)             |
-| `pnpm --filter @teardown/api usage-events`                | Print the latest `usage_events` rows (what did this cost)      |
-| `pnpm --filter @teardown/api recent-sessions`             | The last five sessions: captures, chunks, words, audio         |
-| `pnpm --filter @teardown/api grant-credits --email <you>` | Add promo credits to an account (default 5)                    |
-| `pnpm --filter @teardown/api generate-latest`             | Phase 4 end-to-end check on your latest stopped session        |
-| `pnpm --filter @teardown/extension build`                 | Bundle the extension into `apps/extension/dist`                |
-| `pnpm --filter @teardown/extension dev`                   | Same, rebuilding on save                                       |
+| Command                                                   | What it does                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------- |
+| `pnpm build`                                              | Build every package (core first; the apps depend on it)       |
+| `pnpm test`                                               | Run every package's Vitest suite                              |
+| `pnpm typecheck`                                          | `tsc --noEmit` in every package                               |
+| `pnpm lint` / `pnpm format`                               | typescript-eslint recommended / Prettier defaults             |
+| `pnpm --filter @teardown/api dev`                         | API with reload on save, reading `apps/api/.env`              |
+| `pnpm --filter @teardown/api dev:worker`                  | The queue worker: transcription and generation                |
+| `pnpm --filter @teardown/web dev`                         | Web app on http://localhost:5173 with hot reload              |
+| `pnpm --filter @teardown/web build`                       | Typecheck and build the web app into `apps/web/dist`          |
+| `pnpm --filter @teardown/extension build`                 | Bundle the extension into `apps/extension/dist`               |
+| `pnpm --filter @teardown/extension dev`                   | Same, rebuilding on save                                      |
+| `pnpm --filter @teardown/api fake-session`                | A synthetic session through the real API (see below)          |
+| `pnpm --filter @teardown/api generate-latest`             | Generate your latest stopped session and check it (see below) |
+| `pnpm --filter @teardown/api grant-credits --email <you>` | Add promo credits to an account (default 5)                   |
+| `pnpm --filter @teardown/api recent-sessions`             | The last five sessions: captures, chunks, words, audio        |
+| `pnpm --filter @teardown/api usage-events`                | The latest `usage_events` rows (what did this cost)           |
 
 After changing anything in `packages/core`, run `pnpm --filter @teardown/core build` so the apps
 see it (or leave `pnpm --filter @teardown/core build --watch` running).
@@ -177,9 +163,9 @@ Each runtime dependency, and what it is for. Add one only when it replaces more 
 | `@hono/node-server`            | api       | Runs a Hono app on Node's `http` server                                          |
 | `jose`                         | api       | Verifies Supabase JWTs against the project's JWKS                                |
 | `postgres`                     | api       | Postgres client (`postgres.js`); queries are hand-written SQL                    |
-| `@supabase/supabase-js`        | api       | Storage client: signed upload/download URLs, object listing and delete           |
+| `@supabase/supabase-js`        | api       | Storage (signed upload/download URLs, listing, delete) and deleting auth users   |
 | `pg-boss`                      | api       | Postgres-backed job queue for the worker process                                 |
-| `openai`                       | api       | OpenAI SDK: Whisper transcription now, vision models in Phase 4                  |
+| `openai`                       | api       | Whisper transcription, the vision model, and web search for approved refines     |
 | `sharp`                        | api       | Crops region captures from originals; shrinks images to the model's patch budget |
 | `@supabase/supabase-js`        | extension | Google sign-in (`signInWithIdToken`) and session refresh in the service worker   |
 | `react`, `react-dom`           | web       | The UI library                                                                   |
@@ -193,27 +179,20 @@ Dev: `typescript` 5.x (TypeScript 7 is not yet supported by `typescript-eslint`)
 
 ## Manual test scripts
 
-Steps to check by hand at the end of each phase. Automated tests cover only `packages/core`
-and, later, the credit ledger and the Stripe webhook.
+Automated tests cover `packages/core` (and, from Phase 6, the credit ledger and the Stripe
+webhook). Everything else is checked by hand with these lists, run with the API, worker and web
+app going.
 
-**Phase 0**
+**API basics**
 
 - [ ] `pnpm test` passes on a fresh clone.
 - [ ] `GET /health` returns 200 with no token.
 - [ ] `GET /v1/me` returns 401 with no token, a malformed header, or a garbage token.
-- [ ] `GET /v1/me` with a real token returns the user with `creditBalance: 0`.
-- [ ] Insert `(user_id, delta, reason) = (<id>, 5, 'promo')` into `credit_ledger` in the SQL editor;
-      `GET /v1/me` now shows `creditBalance: 5`.
+- [ ] `GET /v1/me` with a real token returns the user; after `grant-credits`, `creditBalance`
+      goes up by 5.
+- [ ] `GET /v1/sessions/<someone else's id>` returns 404, not 403.
 
-**Phase 2**
-
-With the API and the worker both running, and the email/password user from Phase 0:
-
-```bash
-FAKE_EMAIL=you@example.com FAKE_PASSWORD=... pnpm --filter @teardown/api fake-session --delete
-```
-
-or, as an existing Google-account user (local-only dev token, no password):
+**Backend without the extension**
 
 ```bash
 pnpm --filter @teardown/api fake-session --email you@gmail.com --delete
@@ -221,24 +200,21 @@ pnpm --filter @teardown/api fake-session --email you@gmail.com --delete
 
 The script creates a session, uploads a spoken WAV (generated with macOS `say`) as one audio
 chunk and three PNGs as captures through the real presign → PUT → register routes, stops the
-session, waits for the worker, and prints the transcript with `[CAPTURE n]` markers.
+session, waits for the worker, and prints the transcript with `[CAPTURE n]` markers. (For an
+email/password user: `FAKE_EMAIL=… FAKE_PASSWORD=… pnpm --filter @teardown/api fake-session`.)
 
-- [ ] It ends with `captureCount = 3 ✓; wordCount = N ✓` and a transcript that reads like the
+- [ ] It ends with `captureCount = 3 ✓; wordCount = N ✓`, and the transcript reads like the
       narration, with `[CAPTURE 1]` near "capture this", `[CAPTURE 2]` near "capturing that
       too" and `[CAPTURE 3]` near "one more capture".
 - [ ] With `--delete`, the last line reports `GET → 404; objects left in storage: 0; rows left: 0`.
-- [ ] `pnpm --filter @teardown/api usage-events` shows one `transcribe` row with
-      `audio_seconds` ≈ 33 and a cost estimate of about $0.003 (its `session_id` is null after
-      `--delete`: usage rows outlive their session on purpose).
-- [ ] Run it again without `--delete`, then delete the session's row from `sessions` in the
-      dashboard: its captures and audio_chunks rows (and with them its words) disappear (the cascade),
-      but its storage objects remain — only the API's DELETE cleans those.
-- [ ] `GET /v1/sessions/<someone else's id>` returns 404, not 403.
+- [ ] `usage-events` shows one `transcribe` row with `audio_seconds` ≈ 33 and about $0.003 (its
+      `session_id` is null after `--delete`: usage rows outlive their session on purpose).
 
-**Phase 3** — with the API and worker running and the extension loaded:
+**Extension**
 
 - [ ] Sign in with Google from the panel (a Google popup; it closes itself).
 - [ ] First use: "Allow microphone" opens a tab; after allowing, the panel enables Start.
+- [ ] The idle panel shows the "Stuck for a word? Just ask." tip.
 - [ ] Start on a competitor's site. The level meter moves when you talk; a small dark toolbar
       with a red dot appears bottom-centre of the page.
 - [ ] Capture with the page button, the panel button, and ⌘⇧S. Each adds a thumbnail to the
@@ -247,27 +223,28 @@ session, waits for the worker, and prints the transcript with `[CAPTURE n]` mark
       Drag a corner or edge to resize it, the green "Move" grip to move it. The × on its
       corner removes it (as does Clear). Esc cancels a region while you are drawing it. The
       page under the box stays clickable.
-- [ ] The idle panel shows the "Stuck for a word? Just ask." tip.
 - [ ] Switch tabs and navigate; the toolbar follows you. On `chrome://` pages ⌘⇧S still
       captures (a plain viewport shot).
 - [ ] Close the side panel mid-session, wait 30 s, reopen: the meter is still moving, the
-      filmstrip is intact, and `pnpm --filter @teardown/api usage-events` keeps growing.
+      filmstrip is intact, and `usage-events` keeps growing.
 - [ ] Mute the mic for 10 s: the red "No sound" alarm appears; unmute: it goes.
 - [ ] Stop. The Stop screen counts captures and words and gives the quality read; the word
       count settles within ~30 s. Delete a capture from the filmstrip (× on hover).
 - [ ] Keep going → the meter returns; Stop again; the summary includes both stretches.
-- [ ] Generate → until Phase 4 the panel says generation is not available yet.
-- [ ] A 5-minute session on a real site ends with N captures and a transcript on the server:
-      `GET /v1/sessions/:id/summary` matches what the panel showed.
+- [ ] Generate: the panel clears and a tab opens at `localhost:5173/sessions/<id>`. With 0
+      credits it says "Out of credits" instead.
+- [ ] A 5-minute session on a real site: `GET /v1/sessions/:id/summary` matches what the panel
+      showed.
 
-**Phase 4** — with the API and worker running, after recording and stopping a session:
+**Generation from a script**
+
+After recording and stopping a session:
 
 ```bash
-pnpm --filter @teardown/api grant-credits --email you@gmail.com
 pnpm --filter @teardown/api generate-latest
 ```
 
-- [ ] Status goes `syncing → processing → ready`; the document prints, and is saved to
+- [ ] Status goes `syncing → processing → ready`; the document prints and is saved to
       `apps/api/scripts/output/<session>-v1.md`.
 - [ ] The image check line ends in ✓ (every `[IMAGE_n]` has an image; none repeated).
 - [ ] The usage line shows the model, tokens, one `w×h` per image (none wider than ~2,000 px),
@@ -275,10 +252,8 @@ pnpm --filter @teardown/api generate-latest
 - [ ] "contract-breaking refine → 422 … versions now 1 ✓" and "ordinary refine → 201 (version 2) ✓".
 - [ ] Your balance went down by exactly one (`GET /v1/me`); the rejected refine and the kept one
       cost nothing.
-- [ ] Generate from the extension's Stop screen: the panel clears and a tab opens at
-      `localhost:5173/sessions/<id>`. With 0 credits it says "Out of credits" instead.
 
-**Phase 5** — API, worker and web app running (`pnpm --filter @teardown/web dev`):
+**Web app and the full loop**
 
 - [ ] `http://localhost:5173` sends you to Sign in; Google sign-in lands on Sessions.
 - [ ] Record a session in the extension, Stop, Generate: the tab that opens shows "Finishing
@@ -297,14 +272,14 @@ pnpm --filter @teardown/api generate-latest
 - [ ] "Remove all the images" → the model's reason appears as a reply; no new version.
 - [ ] "Add a comparison with <another product>'s docs" → the model says what it would look up,
       with **Search and apply** / **Not now**. Search and apply → a new version whose added
-      text links its sources. `pnpm --filter @teardown/api usage-events` shows the refine with
-      its cost (about 1¢ with a search).
+      text links its sources. `usage-events` shows the refine with its cost (about 1¢ with a
+      search).
 - [ ] Sessions list: title, date, capture count, status; Delete asks first, then the row goes.
 - [ ] Discard in the extension (Stop screen → Discard → Discard) deletes the session: it is
       gone from the web app's library. A stopped session you did _not_ discard shows "Ready to
       generate" with a Generate button.
 - [ ] Sign out in the web app does **not** sign the extension out (and vice versa).
 - [ ] Account → Delete my account → type the phrase → you land on Sign in with "Your account
-      and everything in it has been deleted." `pnpm --filter @teardown/api recent-sessions`
-      shows none of your sessions, the extension asks you to sign in again, and the storage
-      buckets have no folder for your old user id.
+      and everything in it has been deleted." `recent-sessions` shows none of your sessions,
+      the extension asks you to sign in again, and the storage buckets have no folder for your
+      old user id.

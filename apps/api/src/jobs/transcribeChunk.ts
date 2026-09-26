@@ -28,7 +28,7 @@ export async function transcribeChunkJob({
 
     // Chunks overlap by about a second. Words that start before the previous chunk ended were
     // already transcribed from that chunk, so they are dropped here (decision: earlier chunk
-    // owns the overlap; spine §17 N asks to measure how often this splits a word).
+    // owns the overlap; spine §9.1: measured, and overlap alone has been enough).
     const overlapEndMs = await previousChunkEndMs(
       chunk.sessionId,
       chunk.offsetMs,

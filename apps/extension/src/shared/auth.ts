@@ -1,7 +1,7 @@
 import { createClient, type Session } from "@supabase/supabase-js";
 import { buildConfig } from "./buildConfig.js";
 
-// Google sign-in for the extension (build plan §Auth, spike D): launchWebAuthFlow gets a Google
+// Google sign-in for the extension (build plan §Auth setup): launchWebAuthFlow gets a Google
 // ID token, Supabase turns it into a session, and the session lives in chrome.storage.local.
 // Only the service worker imports this, so there is exactly one Supabase client.
 

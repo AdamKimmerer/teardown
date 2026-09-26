@@ -129,7 +129,7 @@ async function sessionNowMs(): Promise<number> {
   // ---- visibility follows the session in storage ---------------------------------------------
   // Nobody messages tabs to hide the controls: Chrome freezes background tabs and a frozen tab
   // may never answer. A storage change reaches a frozen tab when it wakes, and the tab also
-  // re-checks whenever it becomes visible (docs/decisions.md #50).
+  // re-checks whenever it becomes visible (spine §4, extension rules).
   async function syncVisibility(): Promise<void> {
     const { session } = await chrome.storage.local.get("session");
     recording =

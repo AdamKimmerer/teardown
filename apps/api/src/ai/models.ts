@@ -1,4 +1,4 @@
-// The OpenAI models Teardown uses, as single constants (build plan §Architecture).
+// The OpenAI models Teardown uses, as single constants (build plan §Stack, §AI).
 
 // whisper-1 is the only OpenAI transcription model that returns word-level timestamps, which the
 // marker alignment needs (spine §9.2). Verified 2026-09-19 against the speech-to-text guide:

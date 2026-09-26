@@ -2,7 +2,7 @@
 // v2 let the model decline instead of saving a no-op or writing an apology into the document.
 // v3 adds general knowledge, and a third answer: "I would need to search the web". The app asks
 // the analyst first; if they approve, the same request runs again with web search enabled
-// (docs/decisions.md #56). The output is still checked by core/outputContract.ts afterwards.
+// (spine §12). The output is still checked by core/outputContract.ts afterwards.
 
 export const REFINE_PROMPT_VERSION = "refine.v3";
 

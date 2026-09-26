@@ -172,7 +172,7 @@ export async function lockDocument(
   `;
 }
 
-// Appends the next version. Versions are never updated or deleted (spine §12.1).
+// Appends the next version. Versions are never updated or deleted (spine §10.3).
 export async function insertVersion(
   tx: TransactionSql,
   version: {

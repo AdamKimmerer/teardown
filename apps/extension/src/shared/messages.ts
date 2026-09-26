@@ -99,7 +99,7 @@ export async function sendMessage(message: Message): Promise<unknown> {
 }
 
 // How long to wait for a tab to answer. A frozen background tab may never answer, so every
-// tab message gives up after this (docs/decisions.md).
+// tab message gives up after this (spine §4, extension rules).
 const TAB_MESSAGE_TIMEOUT_MS = 1_000;
 
 // Sends to the content script in one tab; false if the tab has no content script or does not

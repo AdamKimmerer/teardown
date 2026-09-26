@@ -1,5 +1,5 @@
-// Grants promo credits to a user (spine §6: launch promo is a post-purchase ledger grant; the
-// build plan's "promo grant script"). Prints the new balance.
+// Grants promo credits to a user (spine §6.2: the launch promo is a post-purchase ledger
+// grant, not a discount). Prints the new balance.
 //
 //   pnpm --filter @teardown/api grant-credits --email you@gmail.com [--credits 5]
 import { grantCredits } from "../src/billing/ledger.js";
