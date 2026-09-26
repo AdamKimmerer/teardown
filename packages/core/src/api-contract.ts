@@ -119,10 +119,14 @@ export const ResumeSessionRequestSchema = z.object({
 export type ResumeSessionRequest = z.infer<typeof ResumeSessionRequestSchema>;
 
 // GET /documents/:id
+// Everything the Revisions panel shows for a version, without its Markdown.
 export const DocumentVersionSummarySchema = DocumentVersionSchema.pick({
   id: true,
   versionNo: true,
   source: true,
+  parentVersionId: true,
+  refinePrompt: true,
+  note: true,
   createdAt: true,
 });
 export type DocumentVersionSummary = z.infer<
@@ -153,19 +157,44 @@ export type DocumentVersionResponse = z.infer<
   typeof DocumentVersionResponseSchema
 >;
 
+// POST /documents/:id/refine. fromVersionId: the version to edit (default: the current one);
+// the result is a new version whose parent is that one. allowWebSearch: the user approved a web
+// search the model asked for in an earlier needs_web_search answer.
 export const RefineRequestSchema = z.object({
   prompt: z.string().min(1).max(4000),
+  fromVersionId: z.uuid().optional(),
+  allowWebSearch: z.boolean().optional(),
 });
 export type RefineRequest = z.infer<typeof RefineRequestSchema>;
 
-// POST /documents/:id/refine → the new version and the model's one-line note on what it changed.
-// A refine that is declined, changes nothing, or breaks the output contract is a 422 whose
-// error message says why (refine_declined carries the model's own explanation).
-export const RefineResponseSchema = z.object({
-  version: DocumentVersionSchema,
-  note: z.string(),
-});
+// What a refine produced. Only "edited" saves a version (201). The others are answers, not
+// errors (200): the model declined and says why, the edit changed nothing, or it needs a web
+// search and asks first. An edit that breaks the output contract is still a 422 (spine §12.1).
+export const RefineResponseSchema = z.discriminatedUnion("outcome", [
+  z.object({
+    outcome: z.literal("edited"),
+    version: DocumentVersionSchema,
+    note: z.string(),
+    usedWebSearch: z.boolean(),
+  }),
+  z.object({ outcome: z.literal("declined"), note: z.string() }),
+  z.object({ outcome: z.literal("no_change"), note: z.string() }),
+  z.object({
+    outcome: z.literal("needs_web_search"),
+    note: z.string(),
+    searchQuery: z.string(),
+  }),
+]);
 export type RefineResponse = z.infer<typeof RefineResponseSchema>;
+
+// POST /documents/:id/current — the version the user is looking at becomes current: it opens
+// next time and is what exports use.
+export const SetCurrentVersionRequestSchema = z.object({
+  versionId: z.uuid(),
+});
+export type SetCurrentVersionRequest = z.infer<
+  typeof SetCurrentVersionRequestSchema
+>;
 
 // POST /exports
 export const CreateExportRequestSchema = z.object({

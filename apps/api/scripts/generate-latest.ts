@@ -1,7 +1,7 @@
 // The Phase 4 done-criterion without a web app: runs Generate on your most recent stopped
 // session through the real API, waits for the worker, prints the document and checks that every
-// [IMAGE_n] resolves to an image, then tries a refine that breaks the output contract (expects
-// 422 and no new version) and one that keeps it (expects version 2).
+// [IMAGE_n] resolves to an image, then tries a refine the model must refuse (no new version) and
+// one it should apply (version 2).
 //
 //   pnpm --filter @teardown/api generate-latest [--session <id>] [--no-refine]
 //
@@ -50,7 +50,7 @@ try {
   );
   await printUsage(target.id);
 
-  // 3. Refine: one that must be rejected, one that must be kept.
+  // 3. Refine: one the model must refuse (declined, or rejected by the contract), one it must keep.
   if (!process.argv.includes("--no-refine")) {
     const bad = await api(
       "POST",
@@ -59,25 +59,25 @@ try {
         prompt:
           "Remove every image and cut the whole document down to one sentence.",
       },
-      [201, 422],
+      [200, 201, 422],
     );
     const afterBad = await api("GET", `/v1/documents/${doc.document.id}`);
+    const refused =
+      bad.status === 422 || (bad.status === 200 && bad.outcome !== "edited");
     log(
-      `contract-breaking refine → ${bad.status} (${bad.error?.message ?? "saved!"}); versions now ${afterBad.versions.length} ${bad.status === 422 && afterBad.versions.length === 1 ? "✓" : "✗"}`,
+      `refine that must be refused → ${bad.status} ${bad.outcome ?? bad.error?.code} (${bad.note ?? bad.error?.message}); versions now ${afterBad.versions.length} ${refused && afterBad.versions.length === 1 ? "✓" : "✗"}`,
     );
 
     const good = await api(
       "POST",
       `/v1/documents/${doc.document.id}/refine`,
-      {
-        prompt: "Make the Summary section a little more concise.",
-      },
-      [201, 422],
+      { prompt: "Make the Summary section a little more concise." },
+      [200, 201, 422],
     );
-    if (good.status === 201)
+    if (good.outcome === "edited")
       save(target.id, good.version.versionNo, good.version.markdown);
     log(
-      `ordinary refine → ${good.status}${good.status === 201 ? ` (version ${good.version.versionNo}) ✓` : ` (${good.error.message}) — rejected by the contract; try a different wording`}`,
+      `ordinary refine → ${good.status} ${good.outcome ?? good.error?.code}${good.outcome === "edited" ? ` (version ${good.version.versionNo}: ${good.note}) ✓` : ` (${good.note ?? good.error?.message}) — try a different wording`}`,
     );
   }
   log(`documents written to ${outputDir}`);

@@ -171,7 +171,7 @@ one line to revisit.
     Discard hang. The page controls now show and hide themselves by watching the session in
     `chrome.storage.local`; the worker only pings and injects into the _active_ tab, every tab
     message times out after 1 s, and session transitions never await tab work.
-51. **Refine prompt v2 answers in a fixed JSON shape** (`outcome` edited | declined, `note`,
+51. _(Response codes superseded by #56.)_ **Refine prompt v2 answers in a fixed JSON shape** (`outcome` edited | declined, `note`,
     `markdown`; Responses API structured output). A declined request returns 422 with the
     model's own explanation and writes nothing into the document; an edit identical to the
     current version is 422 `refine_no_change`; the contract also rejects raw HTML. A saved
@@ -195,3 +195,39 @@ one line to revisit.
 54. **Migrations go through the Supabase CLI via `npx … db push --db-url`.** `0001` had been run
     in the SQL editor, so it was marked applied with `migration repair 0001 --status applied`
     first; the history now matches the files.
+
+## Phase 5 UX batch (2026-09-26)
+
+55. **Versions form a tree; the version you view is current** (migration
+    `0003_version_tree.sql`). `document_versions.parent_version_id` records the version a refine
+    started from (backfilled as the previous version for the linear history before this) and
+    `note` keeps the model's one-line summary of the change. Refine edits the version being
+    viewed (`fromVersionId`), so refining an older one branches. Viewing a version calls
+    `POST /documents/:id/current`, so it opens there next time and exports will use it.
+56. **Refine answers are outcomes, not errors.** `201 edited` saves a version; `200 declined`,
+    `200 no_change` and `200 needs_web_search` save nothing and carry the model's note (and the
+    search it would run); only an output-contract failure stays `422`, as the build plan says.
+    Declined and search-request replies live in the panel for the visit only; they are not
+    stored.
+57. **Knowledge policy.** Generation (analyze v2) and refine (v3) may use general knowledge to
+    name, explain and give context, worded so a reader can tell it from what the analyst
+    observed; facts about the walkthrough's product still come from the narration and
+    screenshots. Requests the analyst makes out loud during recording ("say where this sits on
+    the page") are instructions to carry out. Refine may ask for a web search when it needs
+    specific or current facts; only after the user approves does the same request run with the
+    `web_search` tool (verified with gpt-6-luna alongside structured output, 2026-09-26). In
+    JSON mode OpenAI returns no citation annotations, so the model links its sources in the
+    Markdown itself. $10 per 1,000 searches plus tokens: about 1¢ per searched refine, recorded
+    in `usage_events.web_searches`. Generation never searches.
+58. **Revisions panel** replaces the version dropdown and the refine box: the history as a
+    conversation (request, then the model's note on the version it made), the request box
+    always visible, docked beside the document and a bottom drawer below 1000px. Refine notes
+    say "screenshots", never `[IMAGE_n]`.
+59. **Lightbox** instead of opening images in a new tab: ← → between captures, Esc or backdrop
+    click closes, "Open original" kept.
+60. **Region editing**: resize from any edge or corner, move with a grip above the box, remove
+    with a × on its corner (Clear stays in the toolbar). The box's inside stays click-through,
+    so moving uses the grip rather than dragging the middle. Starting a move or resize counts as
+    picking: `t_pick_start_ms` becomes when the adjustment began. The content script is split
+    into `markup.ts`, `regionEditor.ts` and `content.ts`.
+61. **"Just ask" tips** in the extension (idle and recording) and in the request box.

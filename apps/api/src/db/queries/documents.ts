@@ -20,13 +20,16 @@ type VersionRow = {
   version_no: number;
   markdown: string;
   source: DocumentVersionSource;
+  parent_version_id: string | null;
   refine_prompt: string | null;
+  note: string | null;
   model: string;
   created_at: Date;
 };
 
 const versionColumns = sql`
-  id, document_id, version_no, markdown, source, refine_prompt, model, created_at
+  id, document_id, version_no, markdown, source, parent_version_id, refine_prompt, note, model,
+  created_at
 `;
 
 function documentFromRow(row: DocumentRow): Document {
@@ -45,7 +48,9 @@ function versionFromRow(row: VersionRow): DocumentVersion {
     versionNo: row.version_no,
     markdown: row.markdown,
     source: row.source,
+    parentVersionId: row.parent_version_id,
     refinePrompt: row.refine_prompt,
+    note: row.note,
     model: row.model,
     createdAt: row.created_at.toISOString(),
   };
@@ -78,14 +83,14 @@ export async function findOwnedDocument(
   return rows[0] ? documentFromRow(rows[0]) : null;
 }
 
-// Every version, oldest first, without the Markdown (the version switcher's list).
+// Every version, oldest first, without the Markdown (the Revisions panel's history).
 export async function listVersionSummaries(
   documentId: string,
 ): Promise<DocumentVersionSummary[]> {
   const rows = await sql<
-    Pick<VersionRow, "id" | "version_no" | "source" | "created_at">[]
+    Omit<VersionRow, "document_id" | "markdown" | "model">[]
   >`
-    select id, version_no, source, created_at
+    select id, version_no, source, parent_version_id, refine_prompt, note, created_at
     from document_versions
     where document_id = ${documentId}
     order by version_no
@@ -94,6 +99,9 @@ export async function listVersionSummaries(
     id: row.id,
     versionNo: row.version_no,
     source: row.source,
+    parentVersionId: row.parent_version_id,
+    refinePrompt: row.refine_prompt,
+    note: row.note,
     createdAt: row.created_at.toISOString(),
   }));
 }
@@ -105,6 +113,20 @@ export async function findVersionById(
     select ${versionColumns}
     from document_versions
     where id = ${versionId}
+  `;
+  return rows[0] ? versionFromRow(rows[0]) : null;
+}
+
+// A version of this document by id, or null (an id from another document is not found).
+export async function findVersionInDocument(
+  documentId: string,
+  versionId: string,
+): Promise<DocumentVersion | null> {
+  const rows = await sql<VersionRow[]>`
+    select ${versionColumns}
+    from document_versions
+    where id = ${versionId}
+      and document_id = ${documentId}
   `;
   return rows[0] ? versionFromRow(rows[0]) : null;
 }
@@ -157,18 +179,24 @@ export async function insertVersion(
     documentId: string;
     markdown: string;
     source: DocumentVersionSource;
+    parentVersionId: string | null;
     refinePrompt: string | null;
+    note: string | null;
     model: string;
   },
 ): Promise<DocumentVersion> {
   const rows = await tx<VersionRow[]>`
-    insert into document_versions (document_id, version_no, markdown, source, refine_prompt, model)
+    insert into document_versions (
+      document_id, version_no, markdown, source, parent_version_id, refine_prompt, note, model
+    )
     values (
       ${version.documentId},
       (select coalesce(max(version_no), 0) + 1 from document_versions where document_id = ${version.documentId}),
       ${version.markdown},
       ${version.source},
+      ${version.parentVersionId},
       ${version.refinePrompt},
+      ${version.note},
       ${version.model}
     )
     returning ${versionColumns}
@@ -177,11 +205,11 @@ export async function insertVersion(
 }
 
 export async function setCurrentVersion(
-  tx: TransactionSql,
+  db: TransactionSql | typeof sql,
   documentId: string,
   versionId: string,
 ): Promise<void> {
-  await tx`
+  await db`
     update documents
     set current_version_id = ${versionId}
     where id = ${documentId}

@@ -228,3 +228,16 @@ button:disabled {
 .thumb.pending {
   opacity: 0.6;
 }
+
+.tip {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef8f3;
+  color: #1d4d3a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.small {
+  font-size: 12px;
+  margin: 4px 0 0;
+}

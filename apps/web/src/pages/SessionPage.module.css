@@ -1,3 +1,7 @@
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+}
 .top {
   display: flex;
   align-items: center;
@@ -15,17 +19,22 @@
 .spacer {
   flex: 1;
 }
-.notice {
-  max-width: 70ch;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: var(--warn-bg);
-  color: var(--warn-fg);
-  margin-bottom: 20px;
-  font-size: 14px;
+
+/* The document and the Revisions panel side by side; the panel docks to the bottom on narrow
+   screens (see RevisionsPanel.module.css), so the document keeps room below it. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 40px;
+  align-items: start;
 }
-.notice button {
-  margin-left: 8px;
-  padding: 3px 10px;
-  font-size: 13px;
+.loading {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 88px;
+  }
 }

@@ -244,7 +244,10 @@ session, waits for the worker, and prints the transcript with `[CAPTURE n]` mark
 - [ ] Capture with the page button, the panel button, and ⌘⇧S. Each adds a thumbnail to the
       filmstrip within a second; the toolbar is never in the shot.
 - [ ] Region: drag a box, capture — the thumbnail shows only the box. Scroll: the box stays.
-      Clear removes it. Esc cancels a drag.
+      Drag a corner or edge to resize it, the green "Move" grip to move it; Esc during a
+      resize or move snaps it back. The × on its corner removes it (as does Clear). The page
+      under the box stays clickable.
+- [ ] The idle panel shows the "Stuck for a word? Just ask." tip.
 - [ ] Switch tabs and navigate; the toolbar follows you. On `chrome://` pages ⌘⇧S still
       captures (a plain viewport shot).
 - [ ] Close the side panel mid-session, wait 30 s, reopen: the meter is still moving, the
@@ -281,11 +284,21 @@ pnpm --filter @teardown/api generate-latest
 - [ ] Record a session in the extension, Stop, Generate: the tab that opens shows "Finishing
       the transcript…" / "Writing your document…", then the document, without a reload.
 - [ ] Signed out when the extension opens that tab? Signing in lands on that session, not the list.
-- [ ] Every screenshot shows in the document; clicking one opens it full size.
-- [ ] Refine ("shorten the summary"): "Saved as version 2"; the version picker shows v1 and v2;
-      picking v1 shows the notice and hides the refine box.
-- [ ] An impossible refine ("remove all the images", "compare with a product we didn't look
-      at") shows the model's reason in the refine box, and no new version appears.
+- [ ] Every screenshot shows in the document. Clicking one opens it large over the page; ← →
+      step through captures; Esc or a click on the dark area closes it; "Open original" works.
+- [ ] The Revisions panel sits beside the document (a bottom drawer on narrow windows): v1
+      "Generated from your walkthrough", then each refine as your request with the model's
+      note underneath. The request box is always visible.
+- [ ] Refine ("shorten the summary") → a new version appears, is highlighted as Viewing, and
+      the document shows it.
+- [ ] Click an older version: the document switches, the box says "Editing v2 · your change
+      becomes a new version from v2". Refine from there → the new version is labelled
+      "from v2". Reload the page: it opens on the version you last viewed.
+- [ ] "Remove all the images" → the model's reason appears as a reply; no new version.
+- [ ] "Add a comparison with <another product>'s docs" → the model says what it would look up,
+      with **Search and apply** / **Not now**. Search and apply → a new version whose added
+      text links its sources. `pnpm --filter @teardown/api usage-events` shows the refine with
+      its cost (about 1¢ with a search).
 - [ ] Sessions list: title, date, capture count, status; Delete asks first, then the row goes.
 - [ ] A session you discarded in the extension shows "Ready to generate" with a Generate button.
 - [ ] Sign out in the web app does **not** sign the extension out (and vice versa).

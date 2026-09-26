@@ -1,3 +1,8 @@
+/* Reading-width page; the session page is wider to fit the Revisions panel. */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+}
 .heading {
   display: flex;
   align-items: baseline;

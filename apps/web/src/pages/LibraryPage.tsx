@@ -14,7 +14,7 @@ export function LibraryPage() {
   const [toDelete, setToDelete] = useState<SessionListItem | null>(null);
 
   return (
-    <>
+    <div className={styles.page}>
       <div className={styles.heading}>
         <h1>Sessions</h1>
         <span className="muted">
@@ -76,6 +76,6 @@ export function LibraryPage() {
         transcript and every version of its document are deleted for good.
         Copies you exported elsewhere are not affected.
       </ConfirmDialog>
-    </>
+    </div>
   );
 }

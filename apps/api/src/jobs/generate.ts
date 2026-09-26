@@ -5,7 +5,7 @@ import { analyzeSession, type AnalyzeResult } from "../ai/analyze.js";
 import { markedTranscript } from "../ai/markedTranscript.js";
 import { toModelImage, type ModelImage } from "../ai/modelImages.js";
 import { visionCostUsd } from "../ai/models.js";
-import type { CaptureForPrompt } from "../ai/prompts/analyze.v1.js";
+import type { CaptureForPrompt } from "../ai/prompts/analyze.v2.js";
 import { spendCredit } from "../billing/ledger.js";
 import { sql } from "../db/client.js";
 import { listChunksForSession } from "../db/queries/audioChunks.js";
@@ -183,7 +183,9 @@ async function saveDocument(
       documentId,
       markdown: normalized.markdown,
       source: "generate",
+      parentVersionId: null,
       refinePrompt: null,
+      note: null,
       model: result.model,
     });
     await setCurrentVersion(tx, documentId, version.id);

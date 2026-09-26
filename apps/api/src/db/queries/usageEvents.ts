@@ -12,6 +12,7 @@ export type NewUsageEvent = {
   audioSeconds?: number;
   imageCount?: number;
   imagePixels?: { w: number; h: number }[];
+  webSearches?: number;
   costUsdEstimate: number;
 };
 
@@ -20,13 +21,13 @@ export async function insertUsageEvent(event: NewUsageEvent): Promise<void> {
   await sql`
     insert into usage_events (
       user_id, session_id, kind, model, input_tokens, output_tokens, audio_seconds,
-      image_count, image_pixels, cost_usd_estimate
+      image_count, image_pixels, web_searches, cost_usd_estimate
     )
     values (
       ${event.userId}, ${event.sessionId}, ${event.kind}, ${event.model},
       ${event.inputTokens ?? null}, ${event.outputTokens ?? null}, ${event.audioSeconds ?? null},
       ${event.imageCount ?? null}, ${event.imagePixels ? sql.json(event.imagePixels) : null},
-      ${event.costUsdEstimate}
+      ${event.webSearches ?? null}, ${event.costUsdEstimate}
     )
   `;
 }

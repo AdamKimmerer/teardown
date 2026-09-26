@@ -12,7 +12,12 @@ export const DocumentVersionSchema = z.object({
   // Markdown with [IMAGE_N] placeholders where captures go.
   markdown: z.string(),
   source: DocumentVersionSourceSchema,
+  // The version this one was refined from; null for the generated version 1. Versions form a
+  // tree because a refine can start from any earlier version.
+  parentVersionId: z.uuid().nullable(),
   refinePrompt: z.string().nullable(),
+  // The model's one-line note on what this refine changed; null for version 1.
+  note: z.string().nullable(),
   model: z.string(),
   createdAt: z.iso.datetime(),
 });

@@ -54,10 +54,19 @@
   text-align: left;
   vertical-align: top;
 }
-.imageLink {
+.imageButton {
   display: inline-block;
   max-width: 100%;
   margin: 8px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.imageButton:hover .image {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.1);
 }
 .image {
   display: block;
@@ -67,6 +76,7 @@
   border-radius: 8px;
   box-shadow: var(--shadow);
   background: #fff;
+  transition: box-shadow 0.15s ease;
 }
 .missing {
   font-family: var(--font);

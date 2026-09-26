@@ -37,17 +37,36 @@ export function useDocumentVersion(id: string, versionNo: number | null) {
   });
 }
 
-// Applies an edit request. A 422 means nothing was saved: the model declined (its reason is the
-// error message), the edit changed nothing, or it broke the output contract.
+export type RefineInput = {
+  prompt: string;
+  fromVersionId: string;
+  allowWebSearch?: boolean;
+};
+
+// Applies an edit request to one version. Resolves with the model's answer: a new version, or a
+// reply (declined, nothing changed, or asking to search the web). A 422 means the edit broke the
+// output contract and nothing was saved.
 export function useRefine(id: string) {
   return useMutation({
-    mutationFn: (prompt: string) =>
+    mutationFn: (input: RefineInput) =>
       apiRequest(
         "POST",
         `/documents/${id}/refine`,
-        { prompt },
+        input,
         RefineResponseSchema,
       ),
+    onSuccess: (answer) => {
+      if (answer.outcome === "edited")
+        void queryClient.invalidateQueries({ queryKey: ["document", id] });
+    },
+  });
+}
+
+// Makes the version the user is looking at current (it opens next time; exports use it).
+export function useSetCurrentVersion(id: string) {
+  return useMutation({
+    mutationFn: (versionId: string) =>
+      apiRequest("POST", `/documents/${id}/current`, { versionId }, null),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["document", id] }),
   });

@@ -1,17 +1,20 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { ApiError } from "../api/client.js";
-import { useDocument, useDocumentVersion } from "../api/documents.js";
+import {
+  useDocument,
+  useDocumentVersion,
+  useSetCurrentVersion,
+} from "../api/documents.js";
 import { useSession } from "../api/sessions.js";
 import { DocumentView } from "../components/DocumentView.js";
 import { PendingSession } from "../components/PendingSession.js";
-import { RefineBox } from "../components/RefineBox.js";
+import { RevisionsPanel } from "../components/RevisionsPanel.js";
 import { StatusBadge } from "../components/StatusBadge.js";
-import { VersionSwitcher } from "../components/VersionSwitcher.js";
 import styles from "./SessionPage.module.css";
 
-// One session: the document once it is ready, otherwise where generation stands. The extension
-// opens this page right after Generate.
+// One session: the document and its Revisions panel once it is ready, otherwise where generation
+// stands. The extension opens this page right after Generate.
 export function SessionPage() {
   const { id = "" } = useParams();
   const session = useSession(id);
@@ -28,73 +31,82 @@ export function SessionPage() {
   if (session.isError) return <p className="error">{session.error.message}</p>;
   const { session: s, captures, documentId } = session.data!;
 
+  const top = (
+    <div className={styles.top}>
+      <Link to="/" className={styles.back}>
+        ← Sessions
+      </Link>
+      <span className={styles.spacer} />
+      <StatusBadge status={s.status} />
+    </div>
+  );
+
   return (
-    <>
-      <div className={styles.top}>
-        <Link to="/" className={styles.back}>
-          ← Sessions
-        </Link>
-        <span className={styles.spacer} />
-        <StatusBadge status={s.status} />
-      </div>
+    <div className={styles.page}>
       {s.status === "ready" && documentId ? (
-        <ReadyDocument documentId={documentId} />
+        <ReadyDocument documentId={documentId} top={top} />
       ) : (
-        <PendingSession session={s} captureCount={captures.length} />
+        <>
+          {top}
+          <PendingSession session={s} captureCount={captures.length} />
+        </>
       )}
-    </>
+    </div>
   );
 }
 
-// The document with its version switcher and the refine box. Earlier versions are read-only.
-function ReadyDocument({ documentId }: { documentId: string }) {
+// The version being viewed and the Revisions panel. Viewing a version makes it current on the
+// server (it opens next time); until the server answers, that version is fetched on its own.
+// `top` (back link and status) sits in the document column, so the panel can start right under
+// the site header and fit the window.
+function ReadyDocument({
+  documentId,
+  top,
+}: {
+  documentId: string;
+  top: ReactNode;
+}) {
   const document = useDocument(documentId);
-  const [viewing, setViewing] = useState<number | null>(null);
-  const current = document.data?.currentVersion.versionNo ?? null;
-  const showingEarlier = viewing !== null && viewing !== current;
-  const earlier = useDocumentVersion(
+  const setCurrent = useSetCurrentVersion(documentId);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+
+  const current = document.data?.currentVersion;
+  const versions = document.data?.versions ?? [];
+  const viewing = versions.find((v) => v.id === (viewingId ?? current?.id));
+  const needsFetch = viewing !== undefined && viewing.id !== current?.id;
+  const fetched = useDocumentVersion(
     documentId,
-    showingEarlier ? viewing : null,
+    needsFetch ? viewing.versionNo : null,
   );
 
   if (document.isLoading) return <p className="muted">Loading the document…</p>;
   if (document.isError)
     return <p className="error">{document.error.message}</p>;
-  const { currentVersion, versions, images } = document.data!;
-  const markdown = showingEarlier
-    ? earlier.data?.version.markdown
-    : currentVersion.markdown;
+  const { images } = document.data!;
+  const markdown = needsFetch
+    ? fetched.data?.version.markdown
+    : current?.markdown;
+
+  const view = (versionId: string) => {
+    setViewingId(versionId);
+    if (versionId !== current?.id) setCurrent.mutate(versionId);
+  };
 
   return (
-    <>
-      <div className={styles.top}>
-        <VersionSwitcher
-          versions={versions}
-          viewing={viewing ?? currentVersion.versionNo}
-          // Picking the current version means "follow the current version", so a refine that
-          // creates a newer one moves the view along with it.
-          onChange={(versionNo) =>
-            setViewing(
-              versionNo === currentVersion.versionNo ? null : versionNo,
-            )
-          }
-        />
+    <div className={styles.layout}>
+      <div className={markdown === undefined ? styles.loading : undefined}>
+        {top}
+        {markdown !== undefined && (
+          <DocumentView markdown={markdown} images={images} />
+        )}
       </div>
-      {showingEarlier && (
-        <div className={styles.notice}>
-          You're viewing version {viewing}. Refining edits the current version
-          (v{currentVersion.versionNo}).
-          <button onClick={() => setViewing(null)}>Back to current</button>
-        </div>
-      )}
-      {markdown === undefined ? (
-        <p className="muted">Loading version…</p>
-      ) : (
-        <DocumentView markdown={markdown} images={images} />
-      )}
-      {!showingEarlier && (
-        <RefineBox documentId={documentId} onRefined={() => setViewing(null)} />
-      )}
-    </>
+      <RevisionsPanel
+        documentId={documentId}
+        versions={versions}
+        viewingId={viewing?.id ?? current!.id}
+        onView={view}
+        onCreated={setViewingId}
+      />
+    </div>
   );
 }

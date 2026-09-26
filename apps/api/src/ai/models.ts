@@ -26,14 +26,19 @@ export const VISION_MAX_OUTPUT_TOKENS = 32_000;
 export const IMAGE_PATCH_SIZE = 32;
 export const IMAGE_PATCH_BUDGET = 2_500;
 
-// Estimated USD for one vision call, from its token counts.
+// The web_search tool, used only by a refine the user approved: $10 per 1,000 calls, with the
+// retrieved content billed as input tokens (pricing page, 2026-09-26).
+export const WEB_SEARCH_USD_PER_CALL = 0.01;
+
+// Estimated USD for one vision-model call, from its token counts and web searches.
 export function visionCostUsd(
   inputTokens: number,
   outputTokens: number,
+  webSearches = 0,
 ): number {
-  return (
+  const tokens =
     (inputTokens * VISION_USD_PER_MILLION_INPUT +
       outputTokens * VISION_USD_PER_MILLION_OUTPUT) /
-    1_000_000
-  );
+    1_000_000;
+  return tokens + webSearches * WEB_SEARCH_USD_PER_CALL;
 }

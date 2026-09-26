@@ -7,7 +7,7 @@ import {
   analyzeInstructions,
   analyzeUserText,
   type CaptureForPrompt,
-} from "./prompts/analyze.v1.js";
+} from "./prompts/analyze.v2.js";
 
 export type AnalyzeResult = {
   markdown: string;

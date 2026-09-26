@@ -1,3 +1,8 @@
+/* Reading-width page; the session page is wider to fit the Revisions panel. */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+}
 .page h1 {
   margin: 0 0 20px;
   font-size: 24px;

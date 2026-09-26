@@ -1,24 +1,30 @@
 import { Hono, type Context } from "hono";
 import { checkRefineContract } from "@teardown/core/outputContract";
 import { documentTitle } from "@teardown/core/documentTitle";
-import type { Document } from "@teardown/core/schemas/document";
+import type {
+  Document,
+  DocumentVersion,
+} from "@teardown/core/schemas/document";
 import {
   DocumentResponseSchema,
   DocumentVersionResponseSchema,
   RefineRequestSchema,
   RefineResponseSchema,
+  SetCurrentVersionRequestSchema,
+  type RefineResponse,
 } from "@teardown/core/api-contract";
 import type { AppEnv } from "../appEnv.js";
 import { AppError } from "../appError.js";
 import { markedTranscript } from "../ai/markedTranscript.js";
 import { visionCostUsd } from "../ai/models.js";
-import { refineDocument } from "../ai/refine.js";
+import { refineDocument, type RefineResult } from "../ai/refine.js";
 import { sql } from "../db/client.js";
 import { listCapturesForSession } from "../db/queries/captures.js";
 import {
   findOwnedDocument,
   findVersionById,
   findVersionByNumber,
+  findVersionInDocument,
   insertVersion,
   listVersionSummaries,
   lockDocument,
@@ -44,7 +50,7 @@ async function ownedDocument(c: Context<AppEnv>): Promise<Document> {
   return document;
 }
 
-async function currentVersion(document: Document) {
+async function currentVersion(document: Document): Promise<DocumentVersion> {
   const version = document.currentVersionId
     ? await findVersionById(document.currentVersionId)
     : null;
@@ -57,8 +63,18 @@ async function currentVersion(document: Document) {
   return version;
 }
 
-// GET /v1/documents/:id — the current version, the version list, and a short-lived link for
-// each [IMAGE_n] (capture n's crop or original).
+async function versionOf(
+  document: Document,
+  versionId: string,
+): Promise<DocumentVersion> {
+  const version = await findVersionInDocument(document.id, versionId);
+  if (version === null)
+    throw new AppError("version_not_found", 404, "No such version");
+  return version;
+}
+
+// GET /v1/documents/:id — the current version, every version's summary (the Revisions panel's
+// history), and a short-lived link for each [IMAGE_n] (capture n's crop or original).
 documentRoutes.get("/:id", async (c) => {
   const document = await ownedDocument(c);
   const [version, versions, captures] = await Promise.all([
@@ -90,7 +106,7 @@ documentRoutes.get("/:id", async (c) => {
   );
 });
 
-// GET /v1/documents/:id/versions/:n — any earlier version, for the version switcher.
+// GET /v1/documents/:id/versions/:n — one version's Markdown.
 documentRoutes.get("/:id/versions/:n", async (c) => {
   const document = await ownedDocument(c);
   const version = await findVersionByNumber(
@@ -102,45 +118,78 @@ documentRoutes.get("/:id/versions/:n", async (c) => {
   return c.json(DocumentVersionResponseSchema.parse({ version }));
 });
 
-// POST /v1/documents/:id/refine — free and unlimited (spine §6). Nothing is saved, and the
-// current version stays, when the model declines (its reason is the error message), when the
-// edit changes nothing, or when the output breaks the contract (spine §12.1). All three are 422.
+// POST /v1/documents/:id/current — the version the user is looking at becomes current: it opens
+// next time and is what exports use.
+documentRoutes.post("/:id/current", async (c) => {
+  const document = await ownedDocument(c);
+  const body = SetCurrentVersionRequestSchema.parse(await c.req.json());
+  const version = await versionOf(document, body.versionId);
+  await setCurrentVersion(sql, document.id, version.id);
+  return c.body(null, 204);
+});
+
+// POST /v1/documents/:id/refine — free and unlimited (spine §6). Edits the requested version
+// (default: current) into a new child version. Only "edited" saves anything (201); declined, no
+// change, and needs-a-web-search are answers (200); an edit that breaks the output contract is
+// a 422 and nothing is saved (spine §12.1).
 documentRoutes.post("/:id/refine", async (c) => {
   const document = await ownedDocument(c);
   const body = RefineRequestSchema.parse(await c.req.json());
-  const current = await currentVersion(document);
+  const base = body.fromVersionId
+    ? await versionOf(document, body.fromVersionId)
+    : await currentVersion(document);
   const captures = await listCapturesForSession(document.sessionId);
+  const allowWebSearch = body.allowWebSearch === true;
   const result = await refineDocument(
-    current.markdown,
+    base.markdown,
     await markedTranscript(document.sessionId, captures),
     body.prompt,
+    allowWebSearch,
   );
+  await recordRefineUsage(c.get("userId"), document.sessionId, result);
 
-  await insertUsageEvent({
-    userId: c.get("userId"),
-    sessionId: document.sessionId,
-    kind: "refine",
-    model: result.model,
-    inputTokens: result.inputTokens,
-    outputTokens: result.outputTokens,
-    costUsdEstimate: visionCostUsd(result.inputTokens, result.outputTokens),
-  });
+  const answer = await refineAnswer(
+    document,
+    base,
+    body.prompt,
+    result,
+    allowWebSearch,
+  );
+  return c.json(
+    RefineResponseSchema.parse(answer),
+    answer.outcome === "edited" ? 201 : 200,
+  );
+});
 
-  if (result.outcome === "declined") {
-    throw new AppError(
-      "refine_declined",
-      422,
-      result.note || "That request can't be done with this document.",
-    );
+// Turns the model's result into the response, saving a version only for a real, valid edit.
+async function refineAnswer(
+  document: Document,
+  base: DocumentVersion,
+  prompt: string,
+  result: RefineResult,
+  allowWebSearch: boolean,
+): Promise<RefineResponse> {
+  if (result.outcome === "needs_web_search" && !allowWebSearch) {
+    return {
+      outcome: "needs_web_search",
+      note: result.note,
+      searchQuery: result.searchQuery,
+    };
   }
-  if (result.markdown === current.markdown.trim()) {
-    throw new AppError(
-      "refine_no_change",
-      422,
-      "That request didn't change anything in the document.",
-    );
+  if (result.outcome !== "edited") {
+    // Declined, or asked for a search again after one was allowed: either way, nothing to save.
+    return {
+      outcome: "declined",
+      note: result.note || "That request can't be done with this document.",
+    };
   }
-  const check = checkRefineContract(current.markdown, result.markdown);
+  if (result.markdown === base.markdown.trim()) {
+    return {
+      outcome: "no_change",
+      note: "That request didn't change anything in the document.",
+    };
+  }
+  const check = checkRefineContract(base.markdown, result.markdown);
   if (!check.ok) {
     throw new AppError(
       "contract_failed",
@@ -148,14 +197,31 @@ documentRoutes.post("/:id/refine", async (c) => {
       `That edit didn't take: ${check.reasons.join("; ")}`,
     );
   }
+  const version = await saveRefinedVersion(document, base, prompt, result);
+  return {
+    outcome: "edited",
+    version,
+    note: result.note,
+    usedWebSearch: result.webSearches > 0,
+  };
+}
 
-  const version = await sql.begin(async (tx) => {
+// The new version is a child of the one that was edited, and becomes current.
+async function saveRefinedVersion(
+  document: Document,
+  base: DocumentVersion,
+  prompt: string,
+  result: RefineResult,
+) {
+  return sql.begin(async (tx) => {
     await lockDocument(tx, document.id);
     const saved = await insertVersion(tx, {
       documentId: document.id,
       markdown: result.markdown,
       source: "refine",
-      refinePrompt: body.prompt,
+      parentVersionId: base.id,
+      refinePrompt: prompt,
+      note: result.note,
       model: result.model,
     });
     await setCurrentVersion(tx, document.id, saved.id);
@@ -166,8 +232,25 @@ documentRoutes.post("/:id/refine", async (c) => {
     );
     return saved;
   });
-  return c.json(
-    RefineResponseSchema.parse({ version, note: result.note }),
-    201,
-  );
-});
+}
+
+async function recordRefineUsage(
+  userId: string,
+  sessionId: string,
+  result: RefineResult,
+): Promise<void> {
+  await insertUsageEvent({
+    userId,
+    sessionId,
+    kind: "refine",
+    model: result.model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    webSearches: result.webSearches,
+    costUsdEstimate: visionCostUsd(
+      result.inputTokens,
+      result.outputTokens,
+      result.webSearches,
+    ),
+  });
+}
