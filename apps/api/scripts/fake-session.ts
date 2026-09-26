@@ -5,6 +5,10 @@
 // [CAPTURE n] markers where the captures landed.
 //
 //   FAKE_EMAIL=you@example.com FAKE_PASSWORD=... pnpm --filter @teardown/api fake-session [--delete]
+//   pnpm --filter @teardown/api fake-session --email you@gmail.com [--delete]
+//
+// --email acts as an existing user (e.g. a Google account) through scripts/devAccessToken.ts
+// (local development only) instead of an email/password sign-in.
 //
 // Needs the API (pnpm --filter @teardown/api dev) and the worker (pnpm --filter @teardown/api
 // dev:worker) running, and SUPABASE_ANON_KEY in .env. Fixtures are generated on the fly with
@@ -15,10 +19,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { deflateSync } from "node:zlib";
 import { insertCaptureMarkers } from "@teardown/core/markers";
-import { listTranscriptWordsForSession } from "../src/db/queries/transcriptWords.js";
+import { listSessionWords } from "../src/db/queries/audioChunks.js";
 import { sql } from "../src/db/client.js";
 import { storage, BUCKETS } from "../src/storage/client.js";
 import { sessionPrefix } from "../src/storage/objectKeys.js";
+import { devAccessToken, revokeDevAccessToken } from "./devAccessToken.js";
 
 const API_URL = process.env.API_URL ?? "http://localhost:3000";
 const SUPABASE_URL = process.env.SUPABASE_URL!;
@@ -38,10 +43,14 @@ const NARRATION =
 const fixturesDir = path.join(import.meta.dirname, "fixtures");
 
 async function main() {
-  if (!SUPABASE_ANON_KEY || !FAKE_EMAIL || !FAKE_PASSWORD) {
-    fail("Set SUPABASE_ANON_KEY (in .env), FAKE_EMAIL and FAKE_PASSWORD");
+  const asEmail = arg("--email");
+  if (!SUPABASE_ANON_KEY || (!asEmail && (!FAKE_EMAIL || !FAKE_PASSWORD))) {
+    fail(
+      "Set SUPABASE_ANON_KEY (in .env), and FAKE_EMAIL + FAKE_PASSWORD or pass --email",
+    );
   }
-  const token = await signIn(FAKE_EMAIL, FAKE_PASSWORD);
+  const devToken = asEmail ? await devAccessToken(asEmail) : null;
+  const token = devToken ?? (await signIn(FAKE_EMAIL!, FAKE_PASSWORD!));
   const api = apiClient(token);
   const wav = makeNarrationWav();
   log(
@@ -109,7 +118,7 @@ async function main() {
 
   // 6. The transcript as the generate job will see it (spine §9.2).
   const detail = await api("GET", `/v1/sessions/${session.id}`);
-  const words = await listTranscriptWordsForSession(session.id);
+  const words = await listSessionWords(session.id);
   const captures = detail.captures.map((c: { tCapture: number }) => ({
     tCapture: c.tCapture,
   }));
@@ -138,8 +147,7 @@ async function main() {
     const rows = await sql<{ n: number }[]>`
       select (
         (select count(*) from captures where session_id = ${session.id}) +
-        (select count(*) from audio_chunks where session_id = ${session.id}) +
-        (select count(*) from transcript_words where session_id = ${session.id})
+        (select count(*) from audio_chunks where session_id = ${session.id})
       )::int as n
     `;
     log(
@@ -150,10 +158,16 @@ async function main() {
       `kept. Delete with: curl -X DELETE -H "Authorization: Bearer $TOKEN" ${API_URL}/v1/sessions/${session.id}`,
     );
   }
+  if (devToken) await revokeDevAccessToken(devToken);
   await sql.end();
 }
 
 // ---- helpers ----------------------------------------------------------------------------------
+
+function arg(name: string): string | undefined {
+  const i = process.argv.indexOf(name);
+  return i === -1 ? undefined : process.argv[i + 1];
+}
 
 function log(line: string) {
   console.log(`[fake-session] ${line}`);

@@ -133,6 +133,18 @@ pnpm --filter @teardown/web dev          # http://localhost:5173
 
 The API allows cross-origin requests from `WEB_APP_URL` only (default `http://localhost:5173`).
 
+### Applying a new migration
+
+Migrations are applied with the Supabase CLI through `npx` (nothing to install or link),
+pointed at the same database as the API. From the repo root:
+
+```bash
+npx supabase@latest db push --db-url "$(grep '^DATABASE_URL=' apps/api/.env | cut -d= -f2-)" --dry-run
+```
+
+Drop `--dry-run` to apply. `0001` was originally run in the SQL editor and has been marked as
+applied in the CLI's history, so only newer files are pushed.
+
 ## Everyday commands
 
 | Command                                                   | What it does                                                   |
@@ -201,6 +213,12 @@ With the API and the worker both running, and the email/password user from Phase
 FAKE_EMAIL=you@example.com FAKE_PASSWORD=... pnpm --filter @teardown/api fake-session --delete
 ```
 
+or, as an existing Google-account user (local-only dev token, no password):
+
+```bash
+pnpm --filter @teardown/api fake-session --email you@gmail.com --delete
+```
+
 The script creates a session, uploads a spoken WAV (generated with macOS `say`) as one audio
 chunk and three PNGs as captures through the real presign → PUT → register routes, stops the
 session, waits for the worker, and prints the transcript with `[CAPTURE n]` markers.
@@ -213,7 +231,7 @@ session, waits for the worker, and prints the transcript with `[CAPTURE n]` mark
       `audio_seconds` ≈ 33 and a cost estimate of about $0.003 (its `session_id` is null after
       `--delete`: usage rows outlive their session on purpose).
 - [ ] Run it again without `--delete`, then delete the session's row from `sessions` in the
-      dashboard: its captures, audio_chunks and transcript_words rows disappear (the cascade),
+      dashboard: its captures and audio_chunks rows (and with them its words) disappear (the cascade),
       but its storage objects remain — only the API's DELETE cleans those.
 - [ ] `GET /v1/sessions/<someone else's id>` returns 404, not 403.
 

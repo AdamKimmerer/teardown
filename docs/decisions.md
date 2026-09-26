@@ -80,7 +80,7 @@ one line to revisit.
 22. **Presigned paths are enforced.** `POST .../captures` and `POST .../chunks` reject a record
     whose path is not exactly the key this API would have presigned for that id/offset, so a
     record can never point at another user's object.
-23. **Worker retries are idempotent.** A re-run of `transcribe-chunk` deletes the chunk's words
+23. _(Words part superseded by #53.)_ **Worker retries are idempotent.** A re-run of `transcribe-chunk` deletes the chunk's words
     before inserting; `singletonKey` keeps a re-registered chunk from queuing twice; 3 retries
     with backoff for transient OpenAI errors.
 24. **Ownership is a 404.** Every `/sessions/:id` route loads the session by id and user; an id
@@ -136,7 +136,7 @@ one line to revisit.
 39. **The output contract lives in `packages/core/src/outputContract.ts`** (the plan named
     `apps/api/src/ai/outputContract.ts` but listed its tests under core; pure functions belong
     in core). Thresholds: 0.5–2× length, ≥ 40% of distinct words kept.
-40. **A chunk's words are replaced in one transaction with a row lock**, so the generate job's
+40. _(Superseded by #53.)_ **A chunk's words are replaced in one transaction with a row lock**, so the generate job's
     transcription catch-up and a still-queued transcribe job cannot double a chunk's words.
 41. **`scripts/devAccessToken.ts` (local only)** mints a real access token for an existing user
     with the service-role key (admin magic link, no email sent) and revokes it afterwards, so
@@ -179,3 +179,19 @@ one line to revisit.
 52. **Stopping mid-rotation waits for the rotation**, so the two overlapping audio chunks are each
     finished exactly once (previously a Stop in that one-second window could drop the newest
     chunk's last second).
+
+## Interstitial: chunk words (2026-09-26)
+
+53. **Words live on their chunk, not in a table of their own** (deviation from the spine's §4
+    table list and the build plan's data model; migration `0002_chunk_words.sql`).
+    `audio_chunks.words` is a jsonb array of `{ word, startMs, endMs }` in spoken order, with a
+    check that it is an array, and `word_count` is a stored generated column. Words are written
+    one chunk at a time and read one session at a time; nothing queried a single word. Saving a
+    chunk's transcript is one single-row update (no transaction, no lock; the last complete
+    array wins); reading flattens the session's chunks by `offset_ms` and parses them with Zod;
+    the word count is `sum(word_count)`. This removed `transcript_words`, its `ordinal` column,
+    its unindexed `chunk_id` foreign key, and the locked replace from #40. Backfilled from the
+    old table; every dev session's word count matched before and after.
+54. **Migrations go through the Supabase CLI via `npx … db push --db-url`.** `0001` had been run
+    in the SQL editor, so it was marked applied with `migration repair 0001 --status applied`
+    first; the history now matches the files.

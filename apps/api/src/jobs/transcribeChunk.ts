@@ -3,13 +3,10 @@ import { TRANSCRIBE_MODEL, TRANSCRIBE_USD_PER_MINUTE } from "../ai/models.js";
 import {
   findChunk,
   previousChunkEndMs,
+  saveChunkWords,
   updateChunkStatus,
 } from "../db/queries/audioChunks.js";
 import { findSession } from "../db/queries/sessions.js";
-import {
-  replaceChunkWords,
-  type NewTranscriptWord,
-} from "../db/queries/transcriptWords.js";
 import { insertUsageEvent } from "../db/queries/usageEvents.js";
 import { BUCKETS } from "../storage/client.js";
 import { downloadObject } from "../storage/downloadObject.js";
@@ -42,14 +39,8 @@ export async function transcribeChunkJob({
       endMs: chunk.offsetMs + w.endMs,
     }));
     const kept = rebased.filter((w) => w.startMs >= overlapEndMs);
-    const words: NewTranscriptWord[] = kept.map((w, ordinal) => ({
-      sessionId: chunk.sessionId,
-      chunkId: chunk.id,
-      ...w,
-      ordinal,
-    }));
 
-    await replaceChunkWords(chunk.id, words);
+    await saveChunkWords(chunk.id, kept);
 
     await insertUsageEvent({
       userId: session.userId,
@@ -62,7 +53,7 @@ export async function transcribeChunkJob({
     });
 
     console.log(
-      `transcribed chunk ${chunk.id} (offset ${chunk.offsetMs} ms): ${words.length} words kept, ` +
+      `transcribed chunk ${chunk.id} (offset ${chunk.offsetMs} ms): ${kept.length} words kept, ` +
         `${rebased.length - kept.length} dropped in overlap, ${transcription.durationSeconds.toFixed(1)} s audio`,
     );
   } catch (err) {

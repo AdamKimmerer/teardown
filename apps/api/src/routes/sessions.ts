@@ -9,6 +9,7 @@ import {
   StopSessionRequestSchema,
 } from "@teardown/core/api-contract";
 import type { AppEnv } from "../appEnv.js";
+import { countSessionWords } from "../db/queries/audioChunks.js";
 import {
   countCapturesForSession,
   listCapturesForSession,
@@ -21,7 +22,6 @@ import {
   resumeSession,
   stopSession,
 } from "../db/queries/sessions.js";
-import { countTranscriptWordsForSession } from "../db/queries/transcriptWords.js";
 import { requireAuth } from "../middleware/auth.js";
 import { BUCKETS } from "../storage/client.js";
 import { deletePrefix } from "../storage/deleteObjects.js";
@@ -62,7 +62,7 @@ sessionRoutes.get("/:id/summary", async (c) => {
   const session = await ownedSession(c);
   const [captureCount, wordCount] = await Promise.all([
     countCapturesForSession(session.id),
-    countTranscriptWordsForSession(session.id),
+    countSessionWords(session.id),
   ]);
   return c.json(
     SessionSummaryResponseSchema.parse({ captureCount, wordCount }),

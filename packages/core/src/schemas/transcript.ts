@@ -21,16 +21,12 @@ export const AudioChunkSchema = z.object({
 
 export type AudioChunk = z.infer<typeof AudioChunkSchema>;
 
-// One transcribed word, already rebased from chunk time onto the session clock.
+// One transcribed word, rebased from chunk time onto the session clock. Stored as-is in
+// audio_chunks.words (a jsonb array in spoken order), so this is exactly the stored shape.
 export const TranscriptWordSchema = z.object({
-  id: z.uuid(),
-  sessionId: z.uuid(),
-  chunkId: z.uuid(),
   word: z.string(),
   startMs: z.number().int().nonnegative(),
   endMs: z.number().int().nonnegative(),
-  // Position within the chunk, so words with equal timestamps keep their spoken order.
-  ordinal: z.number().int().nonnegative(),
 });
 
 export type TranscriptWord = z.infer<typeof TranscriptWordSchema>;

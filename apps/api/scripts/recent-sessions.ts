@@ -10,7 +10,7 @@ const rows = await sql`
     (select count(*)::int from audio_chunks a where a.session_id = s.id) as chunks,
     (select count(*)::int from audio_chunks a where a.session_id = s.id and a.status = 'transcribed') as transcribed,
     (select count(*)::int from audio_chunks a where a.session_id = s.id and a.status = 'failed') as failed,
-    (select count(*)::int from transcript_words w where w.session_id = s.id) as words,
+    (select coalesce(sum(a.word_count), 0)::int from audio_chunks a where a.session_id = s.id) as words,
     (select round(sum(audio_seconds)::numeric, 1) from usage_events u where u.session_id = s.id) as audio_s
   from sessions s
   order by s.created_at desc
