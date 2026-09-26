@@ -158,6 +158,15 @@ export const RefineRequestSchema = z.object({
 });
 export type RefineRequest = z.infer<typeof RefineRequestSchema>;
 
+// POST /documents/:id/refine → the new version and the model's one-line note on what it changed.
+// A refine that is declined, changes nothing, or breaks the output contract is a 422 whose
+// error message says why (refine_declined carries the model's own explanation).
+export const RefineResponseSchema = z.object({
+  version: DocumentVersionSchema,
+  note: z.string(),
+});
+export type RefineResponse = z.infer<typeof RefineResponseSchema>;
+
 // POST /exports
 export const CreateExportRequestSchema = z.object({
   documentId: z.uuid(),

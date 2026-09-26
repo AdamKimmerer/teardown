@@ -166,3 +166,16 @@ one line to revisit.
 49. **No native dialogs in the extension.** Chrome does not show `confirm()` / `alert()` in a side
     panel and returns false, which made Discard silently do nothing. Confirmations in the panel
     are inline rows.
+50. **Nothing in the extension waits on a tab.** Chrome freezes background tabs, and a message to
+    a frozen tab can hang forever (Chromium issue 40901394); that is what made Stop slow and
+    Discard hang. The page controls now show and hide themselves by watching the session in
+    `chrome.storage.local`; the worker only pings and injects into the _active_ tab, every tab
+    message times out after 1 s, and session transitions never await tab work.
+51. **Refine prompt v2 answers in a fixed JSON shape** (`outcome` edited | declined, `note`,
+    `markdown`; Responses API structured output). A declined request returns 422 with the
+    model's own explanation and writes nothing into the document; an edit identical to the
+    current version is 422 `refine_no_change`; the contract also rejects raw HTML. A saved
+    refine returns the model's one-line note on what changed.
+52. **Stopping mid-rotation waits for the rotation**, so the two overlapping audio chunks are each
+    finished exactly once (previously a Stop in that one-second window could drop the newest
+    chunk's last second).

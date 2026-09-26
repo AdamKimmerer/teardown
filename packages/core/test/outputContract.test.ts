@@ -99,6 +99,24 @@ Duis aute irure dolor reprehenderit voluptate velit esse cillum dolore fugiat.
   });
 });
 
+describe("checkRefineContract: HTML", () => {
+  it("rejects an edit that writes HTML elements", () => {
+    const next = previous + "\n<h2>Comparison</h2>\n<p>Not possible.</p>\n";
+    const result = checkRefineContract(previous, next);
+    expect(!result.ok && result.reasons.join()).toContain(
+      "contains HTML (<h2>)",
+    );
+  });
+
+  it("allows angle brackets that are not HTML elements", () => {
+    const next = previous.replace(
+      "adds friction",
+      "adds friction (<2% of users notice)",
+    );
+    expect(checkRefineContract(previous, next)).toEqual({ ok: true });
+  });
+});
+
 describe("normalizeGeneratedPlaceholders", () => {
   it("leaves a valid document alone", () => {
     const result = normalizeGeneratedPlaceholders(previous, 3);

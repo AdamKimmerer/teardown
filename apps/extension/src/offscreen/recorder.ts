@@ -79,24 +79,30 @@ export async function startRecording(
   }
 
   let current = startChunk();
+  let rotating: Promise<void> | null = null;
 
-  // Every CHUNK_MS: start the next chunk, let it overlap, then finish the current one.
+  // Every CHUNK_MS: start the next chunk, let the two overlap, then finish the current one.
+  async function rotate(): Promise<void> {
+    const next = startChunk();
+    await new Promise((r) => setTimeout(r, CHUNK_OVERLAP_MS));
+    const finished = current;
+    current = next;
+    if (!stopped) scheduleRotation();
+    await finishChunk(finished);
+  }
   function scheduleRotation(): void {
-    rotation = setTimeout(async () => {
-      if (stopped) return;
-      const next = startChunk();
-      await new Promise((r) => setTimeout(r, CHUNK_OVERLAP_MS));
-      const finished = current;
-      current = next;
-      scheduleRotation();
-      await finishChunk(finished);
+    rotation = setTimeout(() => {
+      rotating = rotate().finally(() => (rotating = null));
     }, CHUNK_MS - CHUNK_OVERLAP_MS);
   }
   scheduleRotation();
 
+  // Stopping in the middle of a rotation waits for it, so both overlapping chunks are finished
+  // exactly once and the newest one (with the latest audio) is the one stopped here.
   return async function stop() {
     stopped = true;
     if (rotation !== null) clearTimeout(rotation);
+    if (rotating !== null) await rotating;
     await finishChunk(current);
     await stopMeter();
     stream.getTracks().forEach((track) => track.stop());

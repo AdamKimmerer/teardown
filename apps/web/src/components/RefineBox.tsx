@@ -5,13 +5,24 @@ import styles from "./RefineBox.module.css";
 
 // Ask for an edit in plain words. Free and unlimited (spine §6). An edit that breaks the output
 // contract is thrown away and the document stays as it was.
-export function RefineBox({ documentId }: { documentId: string }) {
+export function RefineBox({
+  documentId,
+  onRefined,
+}: {
+  documentId: string;
+  onRefined: () => void;
+}) {
   const [prompt, setPrompt] = useState("");
   const refine = useRefine(documentId);
 
   const submit = () => {
     if (prompt.trim().length === 0) return;
-    refine.mutate(prompt.trim(), { onSuccess: () => setPrompt("") });
+    refine.mutate(prompt.trim(), {
+      onSuccess: () => {
+        setPrompt("");
+        onRefined();
+      },
+    });
   };
 
   return (
@@ -45,7 +56,8 @@ export function RefineBox({ documentId }: { documentId: string }) {
           )}
           {refine.isSuccess && !refine.isPending && (
             <span className="muted">
-              Saved as version {refine.data.version.versionNo}.
+              Saved as version {refine.data.version.versionNo}.{" "}
+              {refine.data.note}
             </span>
           )}
           {refine.isError && (
@@ -57,8 +69,13 @@ export function RefineBox({ documentId }: { documentId: string }) {
   );
 }
 
+// Why nothing was saved. A declined request carries the model's own explanation; a contract
+// failure gets the plan's plain wording (spine §12.1).
 function refineError(error: Error): string {
-  if (error instanceof ApiError && error.status === 422)
+  if (error instanceof ApiError && error.status === 422) {
+    if (error.code === "refine_declined" || error.code === "refine_no_change")
+      return error.message;
     return "That edit didn't take; try rewording.";
+  }
   return error.message;
 }

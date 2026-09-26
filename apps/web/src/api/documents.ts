@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   DocumentResponseSchema,
   DocumentVersionResponseSchema,
+  RefineResponseSchema,
 } from "@teardown/core/api-contract";
 import { apiRequest } from "./client.js";
 import { queryClient } from "./queryClient.js";
@@ -36,8 +37,8 @@ export function useDocumentVersion(id: string, versionNo: number | null) {
   });
 }
 
-// Applies an edit request. 422 means the model's edit broke the output contract and nothing
-// was saved.
+// Applies an edit request. A 422 means nothing was saved: the model declined (its reason is the
+// error message), the edit changed nothing, or it broke the output contract.
 export function useRefine(id: string) {
   return useMutation({
     mutationFn: (prompt: string) =>
@@ -45,7 +46,7 @@ export function useRefine(id: string) {
         "POST",
         `/documents/${id}/refine`,
         { prompt },
-        DocumentVersionResponseSchema,
+        RefineResponseSchema,
       ),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["document", id] }),

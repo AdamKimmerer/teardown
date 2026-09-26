@@ -31,6 +31,7 @@ export function checkRefineContract(
     ...placeholderProblems(previous, next),
     ...lengthProblems(previous, next),
     ...overlapProblems(previous, next),
+    ...htmlProblems(next),
   ];
   return reasons.length === 0 ? { ok: true } : { ok: false, reasons };
 }
@@ -72,6 +73,15 @@ function overlapProblems(previous: string, next: string): string[] {
   return overlap < REFINE_MIN_WORD_OVERLAP
     ? [`only ${Math.round(overlap * 100)}% of the previous wording remains`]
     : [];
+}
+
+// Documents are Markdown. Raw HTML would show up as literal tags (the renderer never renders
+// HTML), so an edit that writes HTML elements is rejected.
+function htmlProblems(next: string): string[] {
+  const tag = next.match(
+    /<\/?(h[1-6]|p|div|span|ul|ol|li|table|tr|td|th|br|strong|em|b|i|a|img|section|blockquote)\b[^>]*>/i,
+  );
+  return tag ? [`contains HTML (${tag[0]}) instead of Markdown`] : [];
 }
 
 // Lower-cased words of three or more letters or digits, placeholders excluded.

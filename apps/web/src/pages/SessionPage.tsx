@@ -71,7 +71,13 @@ function ReadyDocument({ documentId }: { documentId: string }) {
         <VersionSwitcher
           versions={versions}
           viewing={viewing ?? currentVersion.versionNo}
-          onChange={setViewing}
+          // Picking the current version means "follow the current version", so a refine that
+          // creates a newer one moves the view along with it.
+          onChange={(versionNo) =>
+            setViewing(
+              versionNo === currentVersion.versionNo ? null : versionNo,
+            )
+          }
         />
       </div>
       {showingEarlier && (
@@ -86,7 +92,9 @@ function ReadyDocument({ documentId }: { documentId: string }) {
       ) : (
         <DocumentView markdown={markdown} images={images} />
       )}
-      {!showingEarlier && <RefineBox documentId={documentId} />}
+      {!showingEarlier && (
+        <RefineBox documentId={documentId} onRefined={() => setViewing(null)} />
+      )}
     </>
   );
 }

@@ -6,6 +6,7 @@ import {
   DocumentResponseSchema,
   DocumentVersionResponseSchema,
   RefineRequestSchema,
+  RefineResponseSchema,
 } from "@teardown/core/api-contract";
 import type { AppEnv } from "../appEnv.js";
 import { AppError } from "../appError.js";
@@ -101,9 +102,9 @@ documentRoutes.get("/:id/versions/:n", async (c) => {
   return c.json(DocumentVersionResponseSchema.parse({ version }));
 });
 
-// POST /v1/documents/:id/refine — free and unlimited (spine §6). The model's output must pass
-// the contract (every image exactly once, length band, wording overlap) or nothing is saved and
-// the current version stays: 422 (spine §12.1).
+// POST /v1/documents/:id/refine — free and unlimited (spine §6). Nothing is saved, and the
+// current version stays, when the model declines (its reason is the error message), when the
+// edit changes nothing, or when the output breaks the contract (spine §12.1). All three are 422.
 documentRoutes.post("/:id/refine", async (c) => {
   const document = await ownedDocument(c);
   const body = RefineRequestSchema.parse(await c.req.json());
@@ -125,6 +126,20 @@ documentRoutes.post("/:id/refine", async (c) => {
     costUsdEstimate: visionCostUsd(result.inputTokens, result.outputTokens),
   });
 
+  if (result.outcome === "declined") {
+    throw new AppError(
+      "refine_declined",
+      422,
+      result.note || "That request can't be done with this document.",
+    );
+  }
+  if (result.markdown === current.markdown.trim()) {
+    throw new AppError(
+      "refine_no_change",
+      422,
+      "That request didn't change anything in the document.",
+    );
+  }
   const check = checkRefineContract(current.markdown, result.markdown);
   if (!check.ok) {
     throw new AppError(
@@ -151,5 +166,8 @@ documentRoutes.post("/:id/refine", async (c) => {
     );
     return saved;
   });
-  return c.json(DocumentVersionResponseSchema.parse({ version }), 201);
+  return c.json(
+    RefineResponseSchema.parse({ version, note: result.note }),
+    201,
+  );
 });

@@ -20,11 +20,7 @@ import {
   type LocalSession,
   type LocalSessionStatus,
 } from "../shared/sessionState.js";
-import {
-  activeTab,
-  hideControlsEverywhere,
-  showControlsInTab,
-} from "./injection.js";
+import { activeTab, ensureControlsInTab } from "./injection.js";
 import { clearNudges, scheduleForgotToStopNudge } from "./nudges.js";
 import {
   closeOffscreenDocument,
@@ -82,10 +78,9 @@ export async function startSession(
     skippedChunksInARow: 0,
   });
   await startRecorder(session.id, deviceId, startedAt, 0);
-  const tab = await activeTab();
-  if (tab?.id) await showControlsInTab(tab.id, true);
   scheduleForgotToStopNudge();
   await broadcastState();
+  void showControlsInActiveTab();
 }
 
 // Stop: the recorder flushes its last chunk, every upload finishes, then the server is told.
@@ -102,7 +97,6 @@ export async function stopSession(): Promise<void> {
   });
   await updateLocalSession({ status: "review", stoppedAt });
   clearNudges();
-  await hideControlsEverywhere();
   await broadcastState();
 }
 
@@ -120,10 +114,9 @@ export async function resumeSession(): Promise<void> {
     session.startedAt,
     pausedMs,
   );
-  const tab = await activeTab();
-  if (tab?.id) await showControlsInTab(tab.id, true);
   scheduleForgotToStopNudge();
   await broadcastState();
+  void showControlsInActiveTab();
 }
 
 // Generate: hand off to the web app. The local buffer is cleared once the server accepts, since
@@ -151,7 +144,6 @@ export async function dismissSession(): Promise<void> {
   if (session?.status === "recording")
     await sendMessage({ type: "RECORDER_STOP" });
   clearNudges();
-  await hideControlsEverywhere();
   await forgetSession();
 }
 
@@ -207,6 +199,12 @@ async function startRecorder(
     startedAt,
     pausedMs,
   });
+}
+
+// Not awaited by callers: session state never waits on a tab (see injection.ts).
+async function showControlsInActiveTab(): Promise<void> {
+  const tab = await activeTab();
+  if (tab?.id) await ensureControlsInTab(tab.id);
 }
 
 async function forgetSession(): Promise<void> {

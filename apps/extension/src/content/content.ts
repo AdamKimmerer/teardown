@@ -4,29 +4,21 @@ import type { Message } from "../shared/messages.js";
 
 // The in-page controls (spine §4, §8.3): a small toolbar in a closed shadow root at max
 // z-index, a persistent freehand region, and the capture gesture. Injected on demand by the
-// service worker; shown while a session is recording, hidden otherwise. Hides itself and
-// waits two frames before every capture so it is never in the shot (spike C).
+// service worker. Shows itself only while a session is recording, by watching the session in
+// chrome.storage (see "visibility" below). Hides itself and waits two frames before every
+// capture so it is never in the shot (spike C).
 //
 // This is the one runtime that does not parse messages with Zod: Zod alone is 450 KB minified,
 // and this script is injected into pages the user is recording. It receives exactly two message
 // shapes from the service worker, checked by hand below; everything it sends is parsed with Zod
 // on the worker's side.
 
-type InboundMessage = Extract<
-  Message,
-  { type: "SESSION_STATE" | "TRIGGER_CAPTURE" }
->;
+type InboundMessage = Extract<Message, { type: "PING" | "TRIGGER_CAPTURE" }>;
 
 function inboundMessage(raw: unknown): InboundMessage | null {
   if (typeof raw !== "object" || raw === null || !("type" in raw)) return null;
-  const message = raw as { type: unknown; recording?: unknown };
-  if (message.type === "TRIGGER_CAPTURE") return { type: "TRIGGER_CAPTURE" };
-  if (
-    message.type === "SESSION_STATE" &&
-    typeof message.recording === "boolean"
-  ) {
-    return { type: "SESSION_STATE", recording: message.recording };
-  }
+  const type = (raw as { type: unknown }).type;
+  if (type === "PING" || type === "TRIGGER_CAPTURE") return { type };
   return null;
 }
 
@@ -39,7 +31,7 @@ async function sendMessage(message: Message): Promise<unknown> {
 }
 
 (() => {
-  if (window.__teardownControls) return; // already injected; the listener below is live
+  if (window.__teardownControls) return; // already injected; the listeners below are live
   window.__teardownControls = true;
 
   const MAX_Z = 2147483647;
@@ -90,6 +82,8 @@ async function sendMessage(message: Message): Promise<unknown> {
   const freehandButton = $<HTMLButtonElement>('[data-act="freehand"]');
 
   // ---- state --------------------------------------------------------------------------------
+  let recording = false;
+  let capturing = false;
   let mode: "idle" | "armed" | "dragging" = "idle";
   let region: Rect | null = null;
   let regionDrawnAtMs: number | null = null; // session clock; becomes tPickStart for the next capture
@@ -185,10 +179,9 @@ async function sendMessage(message: Message): Promise<unknown> {
   // ---- capture: hide, wait two frames, ask the worker, show ---------------------------------
   const twoFrames = () =>
     new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  let capturing = false;
 
   async function capture(): Promise<void> {
-    if (capturing) return;
+    if (capturing || !recording) return;
     capturing = true;
     try {
       const tCapture = await sessionNowMs();
@@ -210,7 +203,7 @@ async function sendMessage(message: Message): Promise<unknown> {
         pageTitle: document.title,
       });
     } finally {
-      host.style.display = "";
+      host.style.display = recording ? "" : "none";
       capturing = false;
       flash();
     }
@@ -224,7 +217,6 @@ async function sendMessage(message: Message): Promise<unknown> {
     );
   }
 
-  // ---- toolbar and worker messages ----------------------------------------------------------
   $<HTMLDivElement>(".bar").addEventListener("click", (e) => {
     const act = (e.target as HTMLElement).closest("button")?.dataset.act;
     if (act === "capture") void capture();
@@ -235,20 +227,31 @@ async function sendMessage(message: Message): Promise<unknown> {
     if (act === "clear") clearRegion();
   });
 
+  // ---- visibility follows the session in storage ---------------------------------------------
+  // Nobody messages tabs to hide the controls: Chrome freezes background tabs and a frozen tab
+  // may never answer, which once left Stop and Discard waiting forever. A storage change reaches
+  // a frozen tab when it wakes, and the tab also re-checks whenever it becomes visible.
+  async function syncVisibility(): Promise<void> {
+    const { session } = await chrome.storage.local.get("session");
+    recording =
+      (session as { status?: string } | undefined)?.status === "recording";
+    if (!capturing) host.style.display = recording ? "" : "none";
+    if (!recording) clearRegion();
+  }
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && "session" in changes) void syncVisibility();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void syncVisibility();
+  });
+  void syncVisibility();
+
+  // PING: "are the controls in this tab?" (the worker injects them if not). TRIGGER_CAPTURE: ⌘⇧S.
   chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
     const message = inboundMessage(raw);
     if (message === null) return false;
-    if (message.type === "SESSION_STATE") {
-      host.style.display = message.recording ? "" : "none";
-      if (!message.recording) clearRegion();
-      sendResponse({ ok: true });
-      return false;
-    }
-    if (message.type === "TRIGGER_CAPTURE") {
-      void capture();
-      sendResponse({ ok: true });
-      return false;
-    }
+    if (message.type === "TRIGGER_CAPTURE") void capture();
+    sendResponse({ ok: true });
     return false;
   });
 })();

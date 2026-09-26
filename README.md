@@ -266,8 +266,8 @@ pnpm --filter @teardown/api generate-latest
 - [ ] Every screenshot shows in the document; clicking one opens it full size.
 - [ ] Refine ("shorten the summary"): "Saved as version 2"; the version picker shows v1 and v2;
       picking v1 shows the notice and hides the refine box.
-- [ ] A refine that breaks the contract ("remove all the images") shows "That edit didn't take;
-      try rewording" and the document is unchanged.
+- [ ] An impossible refine ("remove all the images", "compare with a product we didn't look
+      at") shows the model's reason in the refine box, and no new version appears.
 - [ ] Sessions list: title, date, capture count, status; Delete asks first, then the row goes.
 - [ ] A session you discarded in the extension shows "Ready to generate" with a Generate button.
 - [ ] Sign out in the web app does **not** sign the extension out (and vice versa).

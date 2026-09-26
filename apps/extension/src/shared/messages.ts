@@ -70,7 +70,7 @@ export const MessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("DEAD_MIC"), silent: z.boolean() }),
 
   // Service worker → content script (tabs.sendMessage)
-  z.object({ type: z.literal("SESSION_STATE"), recording: z.boolean() }),
+  z.object({ type: z.literal("PING") }),
   z.object({ type: z.literal("TRIGGER_CAPTURE") }),
 ]);
 
@@ -98,15 +98,22 @@ export async function sendMessage(message: Message): Promise<unknown> {
   }
 }
 
-// Sends to the content script in one tab; false if the tab has no content script.
+// How long to wait for a tab to answer. A frozen background tab may never answer, so every
+// tab message gives up after this (docs/decisions.md).
+const TAB_MESSAGE_TIMEOUT_MS = 1_000;
+
+// Sends to the content script in one tab; false if the tab has no content script or does not
+// answer in time.
 export async function sendToTab(
   tabId: number,
   message: Message,
 ): Promise<boolean> {
-  try {
-    await chrome.tabs.sendMessage(tabId, message);
-    return true;
-  } catch {
-    return false;
-  }
+  const timeout = new Promise<false>((resolve) =>
+    setTimeout(() => resolve(false), TAB_MESSAGE_TIMEOUT_MS),
+  );
+  const delivery = chrome.tabs.sendMessage(tabId, message).then(
+    () => true,
+    () => false,
+  );
+  return Promise.race([delivery, timeout]);
 }
