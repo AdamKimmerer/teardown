@@ -6,12 +6,12 @@ Last updated: 2026-09-26 (end of Phase 5).
 
 ## Progress
 
-| Phase                                                                  | State                                                                                                                                                                                 |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0–4 Scaffold, spikes, backend core, extension capture path, generation | Done                                                                                                                                                                                  |
-| 5 Web app minimum                                                      | Built. **Waiting on the owner's end-to-end run** (README → Manual test scripts → "Web app and the full loop"), which ends with Delete account.                                        |
-| 6 Billing                                                              | Next. First, re-grant test credits to the new account: `pnpm --filter @teardown/api grant-credits --email <you>`. Then plan the phase (files, open decisions, including spine §17.4). |
-| 7 Exports · 8 Landing and deploy · 9 Instrumentation and hardening     | Not started                                                                                                                                                                           |
+| Phase                                                                  | State                                                                                                                                                             |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0–4 Scaffold, spikes, backend core, extension capture path, generation | Done                                                                                                                                                              |
+| 5 Web app minimum                                                      | Built. **Waiting on the owner's end-to-end run** (README → Manual test scripts → "Web app and the full loop"), which ends with Delete account.                    |
+| 6 Billing                                                              | Next. First, re-grant test credits to the new account: `pnpm --filter @teardown/api grant-credits --email <you>`. Then plan the phase (files and open decisions). |
+| 7 Exports · 8 Landing and deploy · 9 Instrumentation and hardening     | Not started                                                                                                                                                       |
 
 What each phase builds and its done-criteria: `build-plan.md` → "Remaining work by phase".
 
@@ -56,9 +56,6 @@ nothing under `src/` may import it.
 
 ## Open threads
 
-- **Known gap: the "being deleted" guard.** Delete account marks `users.deleted_at` first, but
-  only `GET /me` checks it. The auth middleware should reject users that are missing or being
-  deleted (listed under Phase 9 hardening; small enough to do sooner).
 - **Google OAuth consent-screen verification** is the longest pole before launch. It can start as
   soon as the landing page and privacy policy are live (spine §18).
 - **Phase 9 measurements are ready to collect:** chunk-boundary drops (worker log), pick-start

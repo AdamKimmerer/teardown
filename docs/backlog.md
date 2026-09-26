@@ -36,7 +36,7 @@ exists for it. Grouped by area; the rough strategic order is at the end.
 
 - **Consolidating transcription pass.** One pass over the whole recording at Stop, to fix words
   split at chunk boundaries. Not needed on the sessions measured so far (overlap alone reads
-  cleanly); revisit if longer sessions show drops (`recent-sessions` script, worker logs).
+  cleanly). Scheduled: a head-to-head test on real sessions before Phase 9 closes.
 - **Local or offline transcription.** Out of scope rather than deferred: the cost argument is
   cents and the effort is large.
 

@@ -229,8 +229,8 @@ access token; the API verifies it on every request and uses its `sub` as the use
 - **Delete account** marks the user as being deleted, deletes every stored object under the
   user's id in every bucket, then deletes the auth user. That cascades to every row and revokes
   every refresh token. An access token already issued stays valid until it expires (at most an
-  hour) but finds nothing. Known gap: only `GET /me` checks the "being deleted" mark today; the
-  auth middleware should check it too (see `STATUS.md`).
+  hour) but finds nothing. Until the account is actually deleted, nothing else assumes it is
+  going away.
 
 User management happens in the Supabase dashboard: Authentication → Users for sign-out and
 delete, the `credit_balances` view for balances.
@@ -278,7 +278,7 @@ A LinkedIn launch post invites comments with a keyword; the first 15–20 commen
   price.
 - **One shared code capped at 20 redemptions**, not per-user codes. If it leaks, the exposure is
   a few dollars of inference, which is cheaper than building code issuance. The `promo_codes`
-  table exists; the redemption endpoint is part of Phase 6.
+  table exists. The code is entered on the payment page; redemption is part of Phase 6.
 
 ### 6.3 Silence: gated for quality, not cost
 
@@ -297,6 +297,8 @@ hard limits on what one call can spend, enforced server-side and set generously:
 - request size limits on every route;
 - a per-user rate limit across model-calling routes, as a denial-of-service guard only (on the
   order of 30 calls an hour; high enough that no person notices).
+
+Approved web searches are not limited separately: they are rare and cost about 1¢ each.
 
 Exact numbers come from the first real sessions' distribution (§17). Being too loose costs cents
 (§6.5).
@@ -457,7 +459,8 @@ onto the session clock by the chunk's offset, and saves them on the chunk's row.
 Where two chunks overlap, **the earlier chunk owns the overlap**: words from the later chunk that
 start before the end of the audio already covered are dropped, and the worker logs how many.
 Measured on the first real sessions, overlap alone reads straight across every boundary, so there
-is no final consolidating pass. Keep watching as longer sessions arrive (`backlog.md`).
+is no final consolidating pass. Before Phase 9 closes, the two are compared head to head on real
+sessions (a whole-recording pass at Stop versus the stitched chunks) and the better one stays.
 
 Nothing from this is displayed during recording (§7). It exists so the transcript is ready at
 Stop and generation takes seconds, the Stop screen has a word count, a silence nudge is possible,
@@ -818,12 +821,13 @@ strategic order is: provenance stamping, review affordances the data model alrea
 
 ## 17. Open decisions
 
-| #    | Question                         | Where it stands                                                                | Blocking?            |
-| ---- | -------------------------------- | ------------------------------------------------------------------------------ | -------------------- |
-| 17.1 | Host for the API and worker      | Railway or Fly.io; verify job durations against a 40-capture generation        | Phase 8              |
-| 17.2 | Cap and rate-limit values (§6.4) | Unset until real sessions give a distribution                                  | Before public launch |
-| 17.3 | Notion API specifics             | Current file-upload endpoints and limits; whether page create accepts Markdown | Phase 7              |
-| 17.4 | Promo redemption flow (§6.2)     | Endpoint and where the code is entered (billing page, success page)            | Phase 6              |
+| #    | Question                         | Where it stands                                                                                                                                                 | Blocking?            |
+| ---- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 17.1 | Host for the API and worker      | Railway or Fly.io; verify job durations against a 40-capture generation                                                                                         | Phase 8              |
+| 17.2 | Cap and rate-limit values (§6.4) | Unset until real sessions give a distribution                                                                                                                   | Before public launch |
+| 17.3 | Notion API specifics             | Current file-upload endpoints and limits; whether page create accepts Markdown                                                                                  | Phase 7              |
+| 17.4 | Export menu and formats (§13)    | Separate buttons, or one Export menu? Is there a common import format for help centers, docs sites and CMSs worth offering alongside HTML, Obsidian and Notion? | Phase 7              |
+| 17.5 | Product name and domain          | "Teardown" and teardown.ai may change, depending on which domains are available                                                                                 | Phase 8              |
 
 ---
 
