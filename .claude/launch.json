@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "fnm",
+      "runtimeArgs": ["exec", "--using=22", "pnpm", "--filter", "@teardown/web", "dev"],
+      "port": 5173
+    }
+  ]
+}

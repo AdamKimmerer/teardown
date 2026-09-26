@@ -9,3 +9,4 @@ supabase/.temp/
 supabase/.branches/
 apps/api/scripts/fixtures/
 apps/api/scripts/output/
+.claude/settings.local.json
