@@ -61,9 +61,20 @@
       <div class="row">
         <button id="generate" class="primary big">Generate document</button>
       </div>
-      <div class="row">
+      <div id="review-actions" class="row">
         <button id="resume">Keep going</button>
         <button id="discard" class="quiet">Discard</button>
+      </div>
+      <!-- Chrome does not show confirm() dialogs in a side panel, so the confirmation is inline. -->
+      <div id="discard-confirm" class="card" hidden>
+        <p>
+          Discard this session from the extension? It stays in your library in
+          the web app, where you can still generate it.
+        </p>
+        <div class="row">
+          <button id="discard-yes" class="danger">Discard</button>
+          <button id="discard-no">Cancel</button>
+        </div>
       </div>
       <p class="muted">
         Generating spends one credit. Refining the document later is free.

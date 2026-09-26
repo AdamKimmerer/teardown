@@ -163,3 +163,6 @@ one line to revisit.
 48. **Documents render `[IMAGE_n]` as Markdown images before rendering**; raw HTML in model output
     is never rendered; images display at their own size up to the column width and open full
     size on click (spine §13). Earlier versions are read-only; refine always edits the current.
+49. **No native dialogs in the extension.** Chrome does not show `confirm()` / `alert()` in a side
+    panel and returns false, which made Discard silently do nothing. Confirmations in the panel
+    are inline rows.

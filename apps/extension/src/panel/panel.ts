@@ -219,15 +219,20 @@ button("generate").addEventListener("click", () =>
 button("resume").addEventListener("click", () =>
   run(() => ask({ type: "RESUME_SESSION" }), button("resume")),
 );
-$("discard").addEventListener("click", () => {
-  if (
-    confirm(
-      "Discard this session's local copy? The recording stays in your library in the web app.",
-    )
-  ) {
-    void run(() => ask({ type: "DISMISS_SESSION" }));
-  }
-});
+// Chrome does not show confirm() dialogs in a side panel (it silently returns false), so
+// Discard asks inline.
+function showDiscardConfirm(shown: boolean): void {
+  $("discard-confirm").hidden = !shown;
+  $("review-actions").hidden = shown;
+}
+$("discard").addEventListener("click", () => showDiscardConfirm(true));
+$("discard-no").addEventListener("click", () => showDiscardConfirm(false));
+button("discard-yes").addEventListener("click", () =>
+  run(async () => {
+    await ask({ type: "DISMISS_SESSION" });
+    showDiscardConfirm(false);
+  }, button("discard-yes")),
+);
 
 chrome.runtime.onMessage.addListener((raw) => {
   const message = parseMessage(raw);
