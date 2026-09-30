@@ -276,9 +276,14 @@ delete, the `credit_balances` view for balances.
     between sessions they still want. The limit guards against reading previews for free, so it
     applies at Generate, never at Start: recording is never blocked, and no session is deleted
     to make room. With three waiting, Generate saves the session as ready to generate (no
-    preview), says so, and lists the three with Unlock and Delete. It is generated normally once
-    the user has credits.
-  - **A locked preview can be deleted** like any session (it spent nothing), from its page and
+    preview), says so, and lists the three with Unlock and Set aside. It is generated normally
+    once the user has credits.
+  - **Set aside swaps a preview out without losing the recording.** It discards the locked
+    document and returns that session to ready to generate; its recording, transcript and
+    captures stay. The freed slot goes to the new session. Regenerating the set-aside one later
+    costs a fraction of a cent. So no recording is ever wasted by the limit: the user picks which
+    three sessions hold previews, and every session can still be generated after buying.
+  - **Delete** removes a session entirely, locked or not (it spent nothing), from its page and
     from the library.
   - **Say so before recording.** At zero credits the extension's idle panel says: "You have
     0 credits. You'll see a preview of your document; unlocking it costs 1 credit." With three
