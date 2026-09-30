@@ -85,6 +85,10 @@ exists for it. Grouped by area; the rough strategic order is at the end.
 - **Sign in through the web app instead of the extension's popup.** The extension's Google
   sign-in always opens a small popup window (a Chrome API constraint). Signing in on a web app
   tab and handing the session to the extension is the alternative if the popup proves unpopular.
+- **Reminder emails for waiting work.** "Your teardown of X is ready to unlock" for locked
+  previews and ungenerated sessions, to bring people back. Everything it needs is stored. Waits
+  for an email provider, an unsubscribe link and a line in the privacy policy (Phase 8 or
+  later).
 - **Teams, shared libraries, SSO, enterprise.**
 - **Subscription pricing**, once diffing gives users a history worth paying rent on. Annual
   billing and overage top-ups stay out until then (buying a pack is the top-up).

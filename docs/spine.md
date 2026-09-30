@@ -253,14 +253,39 @@ delete, the `credit_balances` view for balances.
   paying for (§15, `backlog.md`).
 - **Why no free tier.** A free tier gives false signal about willingness to pay. Fifteen to
   twenty people paying list price is the validation.
+- **Preview when out of credits (Planned, Phase 6).** A user with no credits can still record
+  and press Generate. The document is generated and saved locked: they see the title, every
+  section heading, one section in full and the capture count, with placeholder bars for the
+  rest. Buying a pack and unlocking spends one credit on that same document; nothing is
+  generated twice. Why: every new user starts at zero, and the strongest argument for paying is
+  their own walkthrough turned into a document. It costs a seventh of a cent per unpaid preview
+  (§6.5; the transcription is spent during recording either way). It is not a free tier: nothing
+  usable leaves without payment, so the signal stays honest. Free sign-up credits and a canned
+  demo teardown were both considered and passed over: sign-up credits blur the signal and teach
+  nothing about buying the next pack; a demo is marketing material, not the user's own work.
+  Rules:
+  - **The locked part never leaves the server.** The API returns the preview portion and the
+    lengths of the rest; the page draws placeholder bars. Blurred real text is readable in
+    DevTools.
+  - **The preview shows shape and quality, not the conclusions.** Competitive analysis puts its
+    value up front, so the shown section is not the summary (the choice is made in Phase 6
+    planning, from real documents).
+  - **Refine and export stay locked** until the document is unlocked.
+  - **One locked document waiting at a time** (lean; confirm in Phase 6 planning). Generating
+    another while one waits asks the user to unlock or discard the first.
+  - **Say so before recording.** At zero credits the extension's idle panel says: "You have
+    0 credits. You'll see a preview of your document; unlocking it costs 1 credit." It warns and
+    offers Buy credits; it never blocks Start.
 - **MRR is not a goal.** This is a side project with no funding track; pricing fits the usage.
 
 Credits live in an append-only `credit_ledger`: purchases, promo grants, spends and refunds are
-all rows, and the balance is their sum. The credit is spent when a document is saved, never
-earlier: a failed generation costs nothing, and a saved one is always paid for. The spend is one
+all rows, and the balance is their sum. The credit is spent when a document is saved (or, for a
+locked preview, when it is unlocked), never earlier: a failed generation costs nothing, and a saved one is always paid for. The spend is one
 conditional insert inside the save transaction, after a row lock on the user so two concurrent
 generations cannot both spend a last credit. Out of credits is a 402 from Generate, checked
-before anything is queued.
+before anything is queued. (Planned, Phase 6: with the preview, Generate returns 402 only when a
+locked document is already waiting. The save transaction spends a credit if the balance allows
+and otherwise saves the document locked; unlocking later is the same conditional spend.)
 
 **State:** ledger, spend, 402 and a promo grant script are built. Stripe Checkout, the webhook
 and the billing screens are **Planned (Phase 6)**. Today the web app says packs arrive in the
@@ -595,7 +620,8 @@ signed image URLs when it renders. Raw HTML is never rendered.
    └─ the web app can also Generate a stopped session from the library
 6. Web app: document + lightbox · Revisions panel: refine (POST /documents/:id/refine),
    branch from any version, approve a web search · viewing a version makes it current
-7. (Planned) Out of credits → checkout (Stripe) → webhook credits the ledger → Generate again
+7. (Planned) Out of credits → the document is saved locked and shown as a preview → checkout
+   (Stripe) → webhook credits the ledger → back on the session, Unlock spends one credit
 8. (Planned) Export (POST /exports {connector}) → worker → download or Notion page
 ```
 
@@ -821,14 +847,15 @@ strategic order is: provenance stamping, review affordances the data model alrea
 
 ## 17. Open decisions
 
-| #    | Question                         | Where it stands                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Blocking?            |
-| ---- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| 17.1 | Host for the API and worker      | Railway or Fly.io; verify job durations against a 40-capture generation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Phase 8              |
-| 17.2 | Cap and rate-limit values (§6.4) | Unset until real sessions give a distribution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Before public launch |
-| 17.3 | Notion API specifics             | Current file-upload endpoints and limits; whether page create accepts Markdown                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Phase 7              |
-| 17.4 | Export menu and formats (§13)    | Lean: one Export menu with Web page (one self-contained HTML file, for reading, sharing and archiving), Markdown (.zip of Markdown plus images; works in Obsidian and docs sites) and Notion. Confluence later. Open: images must land in the right places automatically when imported into a CMS or help center, or the export loses its point. A zip of HTML plus an images folder does not do that. Options: push integrations per destination (as Notion), or HTML whose images are hosted links, weighed against privacy and "delete means delete" | Phase 7              |
-| 17.5 | Product name and domain          | "Teardown" and teardown.ai may change, depending on which domains are available                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Phase 8              |
-| 17.6 | Recording from the web app       | If the website can open the extension's side panel: a panel on the home page showing every state, "Start a recording" when nothing is running, and the session in progress with real detail (sites visited, captures so far, recording or stopped) and a way back into it. Most users will still start on the site they are tearing down. The server knows a recording is in progress; a regular "still recording" signal from the extension would let the website tell a live session from one interrupted by a crash. Needs a feasibility test first  | Phase 6 planning     |
+| #    | Question                         | Where it stands                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Blocking?                                   |
+| ---- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 17.1 | Host for the API and worker      | Railway or Fly.io; verify job durations against a 40-capture generation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Phase 8                                     |
+| 17.2 | Cap and rate-limit values (§6.4) | Unset until real sessions give a distribution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Before public launch                        |
+| 17.3 | Notion API specifics             | Current file-upload endpoints and limits; whether page create accepts Markdown                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Phase 7                                     |
+| 17.4 | Export menu and formats (§13)    | Lean: one Export menu with Web page (one self-contained HTML file, for reading, sharing and archiving), Markdown (.zip of Markdown plus images; works in Obsidian and docs sites) and Notion. Confluence later. Open: images must land in the right places automatically when imported into a CMS or help center, or the export loses its point. A zip of HTML plus an images folder does not do that. Options: push integrations per destination (as Notion), or HTML whose images are hosted links, weighed against privacy and "delete means delete"                                                                    | Phase 7                                     |
+| 17.5 | Product name and domain          | "Teardown" and teardown.ai may change, depending on which domains are available                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Phase 8                                     |
+| 17.6 | Recording from the web app       | If the website can open the extension's side panel: a panel on the home page showing every state, "Start a recording" when nothing is running, and the session in progress with real detail (sites visited, captures so far, recording or stopped) and a way back into it. Most users will still start on the site they are tearing down. The server knows a recording is in progress; a regular "still recording" signal from the extension would let the website tell a live session from one interrupted by a crash. Needs a feasibility test first                                                                     | Phase 6 planning                            |
+| 17.7 | Recording without the extension  | An idea, not a plan: start a first session from the landing page with no install, ending in the locked preview (§6.1). The browser's screen-share API can share one tab plus the microphone, and screenshots can be taken from that video. What it would lose: the ⌘⇧S shortcut and region select on the page (the page being shared is another tab), and a share dialog every session. A small always-on-top window (Document Picture-in-Picture) could hold Capture and Stop. The extension would become the upgrade for regular use. Needs a feasibility test on real sites (image sharpness, background-tab behaviour) | Before Phase 8 (it shapes the landing page) |
 
 ---
 
