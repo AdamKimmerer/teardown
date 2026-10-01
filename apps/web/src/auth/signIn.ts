@@ -18,7 +18,7 @@ export async function signInWithGoogle(next: string): Promise<void> {
 }
 
 // The path to return to after sign-in, once; only same-site paths are honoured.
-export function takeNextPath(): string {
+function takeNextPath(): string {
   let next: string | null = null;
   try {
     next = sessionStorage.getItem(NEXT_KEY);
@@ -30,14 +30,17 @@ export function takeNextPath(): string {
 }
 
 // A code can be exchanged only once, and React runs effects twice in development, so the
-// exchange for each code is shared.
-const exchanges = new Map<string, Promise<void>>();
+// exchange for each code is shared. It resolves to the path to return to, read once inside the
+// shared promise: reading it per caller would give the second caller "/" and send the user to
+// the library instead of the session they came from.
+const exchanges = new Map<string, Promise<string>>();
 
-export function exchangeCodeOnce(code: string): Promise<void> {
+export function exchangeCodeOnce(code: string): Promise<string> {
   let exchange = exchanges.get(code);
   if (exchange === undefined) {
     exchange = supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) throw error;
+      return takeNextPath();
     });
     exchanges.set(code, exchange);
   }

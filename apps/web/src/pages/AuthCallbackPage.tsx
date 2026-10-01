@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { exchangeCodeOnce, takeNextPath } from "../auth/signIn.js";
+import { exchangeCodeOnce } from "../auth/signIn.js";
 
 // Google sends the browser back here with ?code=…; exchanging it finishes sign-in.
 export function AuthCallbackPage() {
@@ -15,7 +15,7 @@ export function AuthCallbackPage() {
       return;
     }
     exchangeCodeOnce(code)
-      .then(() => navigate(takeNextPath(), { replace: true }))
+      .then((next) => navigate(next, { replace: true }))
       .catch((e: Error) => setError(e.message));
   }, [navigate]);
 
