@@ -241,8 +241,8 @@ delete, the `credit_balances` view for balances.
 
 ### 6.1 Per-generation packs, not a subscription
 
-- **One credit = one generated document.** Everything after generation is free and unlimited:
-  refining, branching, exports.
+- **One credit = one generated document** (from Phase 6: one unlocked document). Everything
+  after that is free and unlimited: refining, branching, exports.
 - **Packs: 5 for $39 and 15 for $99** as a starting point. Credits never expire. No free tier.
   Buying another pack is the top-up. No annual billing.
 - **Why not a subscription.** Subscriptions charge rent on an asset the vendor holds, like a
@@ -253,16 +253,25 @@ delete, the `credit_balances` view for balances.
   paying for (§15, `backlog.md`).
 - **Why no free tier.** A free tier gives false signal about willingness to pay. Fifteen to
   twenty people paying list price is the validation.
-- **Preview when out of credits (Planned, Phase 6).** A user with no credits can still record
-  and press Generate. The document is generated and saved locked: they see the title, every
-  section heading, one section in full and the capture count, with placeholder bars for the
-  rest. Buying a pack and unlocking spends one credit on that same document; nothing is
-  generated twice. Why: every new user starts at zero, and the strongest argument for paying is
-  their own walkthrough turned into a document. It costs a seventh of a cent per unpaid preview
-  (§6.5; the transcription is spent during recording either way). It is not a free tier: nothing
-  usable leaves without payment, so the signal stays honest. Free sign-up credits and a canned
-  demo teardown were both considered and passed over: sign-up credits blur the signal and teach
-  nothing about buying the next pack; a demo is marketing material, not the user's own work.
+- **Preview before paying, for everyone (Planned, Phase 6).** Generate always works and spends
+  nothing. The document is generated and saved locked: the user sees the title, every section
+  heading, one section in full and the capture count, with placeholder bars for the rest.
+  Unlock spends one credit on that same document; nothing is generated twice. Why:
+  - **Every new user starts at zero,** and the strongest argument for paying is their own
+    walkthrough turned into a document.
+  - **Nobody pays for a poor foundation.** Refine reshapes what was recorded; it cannot add a
+    screen nobody captured or analysis nobody spoke. If the preview shows a thin session,
+    recording again is the right call, and the user should learn that before spending. This
+    applies to users with credits too, so there is one path for everyone: generate, preview,
+    Unlock. It costs paying users one click per document and some revenue from re-records;
+    that is the trust being bought.
+  - **It is cheap.** A seventh of a cent per preview (§6.5); the transcription is spent during
+    recording either way.
+  - **It is not a free tier:** nothing usable leaves without payment, so the signal stays
+    honest. Free sign-up credits and a canned demo teardown were both considered and passed
+    over: sign-up credits blur the signal and teach nothing about buying the next pack; a demo
+    is marketing material, not the user's own work.
+
   Rules:
   - **The locked part never leaves the server.** The API returns the preview portion and the
     lengths of the rest; the page draws placeholder bars. Blurred real text is readable in
@@ -270,35 +279,32 @@ delete, the `credit_balances` view for balances.
   - **The preview shows shape and quality, not the conclusions.** Competitive analysis puts its
     value up front, so the shown section is not the summary (the choice is made in Phase 6
     planning, from real documents).
+  - **The locked page says revisions are unlimited.** The Revisions panel is shown, locked,
+    with "Unlimited revisions after unlocking" and example requests, so a user judges the
+    preview knowing it can be reshaped, rather than re-recording over something refine would
+    fix.
   - **Refine and export stay locked** until the document is unlocked.
-  - **Up to three locked previews waiting.** A buyer may be waiting on approval to spend and
-    record a few sessions meanwhile; three covers that, and one would force them to choose
-    between sessions they still want. The limit guards against reading previews for free, so it
-    applies at Generate, never at Start: recording is never blocked, and no session is deleted
-    to make room. With three waiting, Generate saves the session as ready to generate (no
-    preview), says so, and lists the three with Unlock and Set aside. It is generated normally
-    once the user has credits.
-  - **Set aside swaps a preview out without losing the recording.** It discards the locked
-    document and returns that session to ready to generate; its recording, transcript and
-    captures stay. The freed slot goes to the new session. Regenerating the set-aside one later
-    costs a fraction of a cent. So no recording is ever wasted by the limit: the user picks which
-    three sessions hold previews, and every session can still be generated after buying.
-  - **Delete** removes a session entirely, locked or not (it spent nothing), from its page and
-    from the library.
-  - **Say so before recording.** At zero credits the extension's idle panel says: "You have
-    0 credits. You'll see a preview of your document; unlocking it costs 1 credit." With three
-    previews waiting it says instead that new recordings are saved and can be generated after
-    buying credits. It offers Buy credits; it never blocks Start.
+  - **Unlock is one click with the balance shown** ("Unlock · 1 credit, 4 left"). At zero
+    credits it is Buy credits, and checkout returns to the same page.
+  - **No limit on waiting previews.** A buyer may be waiting on approval to spend and record
+    several sessions meanwhile. A limit would only make them choose which session gets a
+    preview, which helps nobody. Runaway use is bounded by the invisible ceilings (§6.4), and a
+    non-payer's real cost is transcription, which a preview limit would not touch.
+  - **Delete** removes a session, locked or not, from its page and from the library.
+  - **Say so before recording, at zero credits only:** the extension's idle panel says "You'll
+    see a preview of your document; unlocking it costs 1 credit" and offers Buy credits. It
+    never blocks Start.
+
 - **MRR is not a goal.** This is a side project with no funding track; pricing fits the usage.
 
 Credits live in an append-only `credit_ledger`: purchases, promo grants, spends and refunds are
-all rows, and the balance is their sum. The credit is spent when a document is saved (or, for a
-locked preview, when it is unlocked), never earlier: a failed generation costs nothing, and a
-saved one is always paid for. The spend is one conditional insert inside the save transaction, after a row lock on the user so two concurrent
+all rows, and the balance is their sum. The credit is spent when a document is saved, never
+earlier: a failed generation costs nothing, and a saved one is always paid for. The spend is one
+conditional insert inside the save transaction, after a row lock on the user so two concurrent
 generations cannot both spend a last credit. Out of credits is a 402 from Generate, checked
-before anything is queued. (Planned, Phase 6: with the preview, Generate returns 402 only when
-three locked previews are already waiting. The save transaction spends a credit if the balance allows
-and otherwise saves the document locked; unlocking later is the same conditional spend.)
+before anything is queued. (Planned, Phase 6: the spend moves to Unlock. Generate never spends
+and never returns 402; the save writes the document locked, and `POST /documents/:id/unlock`
+is the same row lock and conditional insert, returning 402 when the balance is zero.)
 
 **State:** ledger, spend, 402 and a promo grant script are built. Stripe Checkout, the webhook
 and the billing screens are **Planned (Phase 6)**. Today the web app says packs arrive in the
@@ -371,7 +377,7 @@ better document than a tight ten-minute one. Every affordance that implies perfo
   you", and it catches the real failure (muted or wrong mic) instantly.
 - **No clock, no word count, no progress indicator during recording.** Each is a live
   transcript by other means.
-- **The quality read happens at Stop**, the moment the user decides whether to spend a credit:
+- **The quality read happens at Stop**, the moment the user decides whether to generate:
   "12 captures, about 2,300 words — plenty for a full teardown", "…enough for a solid document",
   or "…a short session; the document will be brief. Keep going, or generate anyway." The
   thresholds are 1,500 and 500 words.
@@ -633,8 +639,9 @@ signed image URLs when it renders. Raw HTML is never rendered.
    └─ the web app can also Generate a stopped session from the library
 6. Web app: document + lightbox · Revisions panel: refine (POST /documents/:id/refine),
    branch from any version, approve a web search · viewing a version makes it current
-7. (Planned) Out of credits → the document is saved locked and shown as a preview → checkout
-   (Stripe) → webhook credits the ledger → back on the session, Unlock spends one credit
+7. (Planned) Generate spends nothing: the document is saved locked and shown as a preview →
+   Unlock spends one credit (POST /documents/:id/unlock; 402 at zero) → out of credits: checkout
+   (Stripe) → webhook credits the ledger → back on the same page → Unlock
 8. (Planned) Export (POST /exports {connector}) → worker → download or Notion page
 ```
 
@@ -663,7 +670,8 @@ and never enlarged. Region captures send their crop; viewport captures send the 
 
 **Generation** (`jobs/generate.ts`) runs five steps and records the one that failed in
 `sessions.failed_step`: `transcribe` (wait up to 90 s for queued chunk jobs, then transcribe
-stragglers itself), `crop`, `analyze` (one model call), `save` and `credits` (one transaction).
+stragglers itself), `crop`, `analyze` (one model call), `save` and `credits` (one transaction; from Phase 6 the
+save writes the document locked and the credit moves to Unlock).
 There is no automatic retry. Retrying runs the whole job again, and the steps already done pass
 straight through. Generation **normalises** the model's image placeholders rather than failing a
 paid generation: invalid or repeated `[IMAGE_n]` are removed, and any capture the model left out
@@ -733,8 +741,8 @@ refine cap**: "free and unlimited" stays honest.
    mitigation.
 2. **Payload amplification.** A modified client registering hundreds of captures against one
    credit. Covered by the per-generation caps (§6.4, planned).
-3. **Credit race.** Two generations against a balance of one. Covered: a row lock on the user,
-   then a conditional insert, inside the save transaction.
+3. **Credit race.** Two generations (from Phase 6, two unlocks) against a balance of one.
+   Covered: a row lock on the user, then a conditional insert, inside the spending transaction.
 4. **Token lifetime.** Supabase access tokens expire within an hour; refresh tokens are revoked
    by sign-out and account deletion.
 5. **Content liability.** Users capture whatever they like, processed on our OpenAI key. The
