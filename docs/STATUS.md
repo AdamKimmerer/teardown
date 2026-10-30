@@ -9,7 +9,7 @@ Last updated: 2026-09-26 (end of Phase 5).
 | Phase                                                                  | State                                                                                                                                                                                                          |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0–4 Scaffold, spikes, backend core, extension capture path, generation | Done                                                                                                                                                                                                           |
-| 5 Web app minimum                                                      | Built. **Waiting on the owner's end-to-end run** (README → Manual test scripts → "Web app and the full loop"), which ends with Delete account.                                                                 |
+| 5 Web app minimum                                                      | Built. **Waiting on the owner's end-to-end run** (docs/development.md → Manual test scripts → "Web app and the full loop"), which ends with Delete account.                                                    |
 | 6 Billing                                                              | Next. First, re-grant test credits to the new account: `pnpm --filter @teardown/api grant-credits --email <you>`. Then plan the phase (files and open decisions). Includes the locked preview at zero credits. |
 | 7 Exports · 8 Landing and deploy · 9 Instrumentation and hardening     | Not started                                                                                                                                                                                                    |
 
@@ -28,11 +28,11 @@ pnpm --filter @teardown/extension dev    # rebuilds apps/extension/dist on save
 ```
 
 Load `apps/extension/dist` unpacked in `chrome://extensions` and click ↻ after rebuilds. Full
-setup from a fresh clone: the repo README.
+setup from a fresh clone: [development.md](development.md).
 
 - **Extension id** `knphccpkdmgbckallojfoedobifonjop`, pinned by the manifest `key`. The private
   key is kept outside the repo (`~/.teardown/`).
-- **Supabase project** `otzvfiyxbdjwwzoadxif`. New migrations:
+- **Supabase project:** the ref is in `apps/api/.env` (`SUPABASE_URL`). New migrations:
   `npx supabase@latest db push --db-url "<DATABASE_URL from apps/api/.env>"` (add `--dry-run`
   first).
 - **`.env` files:** `apps/api/.env`, `apps/extension/.env`, `apps/web/.env`. Never committed;

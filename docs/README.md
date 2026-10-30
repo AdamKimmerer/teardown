@@ -12,8 +12,8 @@ Read in this order when joining the project:
 5. **[backlog.md](backlog.md)**: ideas beyond v1 and why each waits, plus what was deliberately
    ruled out.
 
-The repo's top-level [README](../README.md) covers setup, everyday commands, dependencies and
-the manual test scripts.
+**[development.md](development.md)** covers setup from a fresh clone, everyday commands,
+dependencies and the manual test scripts. The work ahead is in [ROADMAP.md](../ROADMAP.md).
 
 **Keeping them true:** a product or architecture change updates `spine.md`; a stack, schema or
 API change updates `build-plan.md`; each deliberate decision gets an entry in `decisions.md`;
