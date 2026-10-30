@@ -69,6 +69,22 @@ TypeScript throughout · Zod · Hono on Node 22 · Postgres via `postgres.js` wi
 · pg-boss · Supabase (Postgres, Auth, Storage) · OpenAI (Whisper, a vision model, web search) ·
 sharp · React, React Router and TanStack Query · Chrome MV3 · Vitest · Stripe (planned).
 
+## Run it locally
+
+You need Node 22, a Supabase project, a Google OAuth client and an OpenAI API key. In short:
+
+```bash
+corepack enable && pnpm install && pnpm build && pnpm test
+cp apps/api/.env.example apps/api/.env   # and the same for apps/extension and apps/web
+pnpm --filter @teardown/api dev          # API on http://localhost:3000
+pnpm --filter @teardown/api dev:worker   # queue worker
+pnpm --filter @teardown/web dev          # web app on http://localhost:5173
+pnpm --filter @teardown/extension build  # then load apps/extension/dist unpacked in Chrome
+```
+
+The step-by-step setup (Supabase, Google sign-in, the schema, env values) is in
+[docs/development.md](docs/development.md).
+
 ## Documentation
 
 - [ROADMAP.md](ROADMAP.md): the work ahead, phase by phase, then after launch.
